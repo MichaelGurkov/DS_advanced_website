@@ -1,0 +1,23 @@
+[
+  {
+    "objectID": "topics/time_series_decomposition.html",
+    "href": "topics/time_series_decomposition.html",
+    "title": "Raw data",
+    "section": "",
+    "text": "import pandas as pd\n\nimport seaborn as sns\n\nimport matplotlib.pyplot as plt\nsales_df = pd.read_csv(\"C:\\\\Users\\\\Home\\\\Desktop\\\\example_retail_sales.csv\")\n\nsales_df[\"date\"] = pd.to_datetime(sales_df[\"date\"], format = \"%d/%m/%Y\")\n\nsales_df[\"sales\"] = sales_df[\"sales\"] / 1000"
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this site\n\n1 + 1\n\n[1] 2"
+  },
+  {
+    "objectID": "topics/time_series_decomposition.html#trend",
+    "href": "topics/time_series_decomposition.html#trend",
+    "title": "Raw data",
+    "section": "Trend",
+    "text": "Trend\n\n\ndef plot_combined_trend_and_series(data,**kwargs):\n    # Create a plot with two line plots\n    ax = sns.lineplot(x='date', y='sales', data=data, color=\"lightgray\")\n    \n    sns.lineplot(x='date', y='ma_value', data=data, color=\"steelblue\", ax=ax)\n    \n    return ax\n\ndef plot_panel(wide_df):\n  \n  long_df = wide_df.melt(id_vars=['date', 'sales'],\n                         var_name='ma_type',\n                         value_name='ma_value')\n                         \n  panel_grid = sns.FacetGrid(long_df, col=\"ma_type\",\n                             col_wrap=2,height = 5,aspect = 1.5)\n                             \n  panel_grid.map_dataframe(plot_combined_trend_and_series)\n  \n  plt.show()\n\n\n\nodd_ma_df = sales_df.copy()\n\nfor win_len in [3,5,7,9]:\n  temp_name = f\"ma_{win_len}\"\n  odd_ma_df[temp_name] = odd_ma_df[\"sales\"].rolling(window = win_len,\n                                                    center = True).mean()\n\n\nplot_panel(odd_ma_df)\n\n\n\n\n\n\n\n\n\n\neven_ma_df = sales_df.copy()\n\nfor win_len in [4,6,8,12]:\n  temp_name = f\"ma_{win_len}\"\n  even_ma_df[temp_name] = even_ma_df[\"sales\"].rolling(window = win_len).mean()\n  even_ma_df[temp_name] = even_ma_df[temp_name].rolling(window = 2).mean()\n  even_ma_df[temp_name] = even_ma_df[temp_name].shift(-win_len//2)\n  \n\n\nplot_panel(even_ma_df)\n\n\n\n\n\n\n\n\nImportant - add an explanation of odd ma (pandas give correct resut) and even ma (pandas give incorrect result, need to apply another 2 MA and center)"
+  }
+]
