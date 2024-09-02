@@ -1,10 +1,28 @@
+---
+title: "Time series decomposition"
+---
 
 
 ```{r set_up_python, echo=FALSE}
 #|echo: FALSE
 
-reticulate::use_python(paste0("C:\\Users\\Home\\AppData\\Local",
-                              "\\Programs\\Python\\Python312\\python.exe"))
+
+if (Sys.getenv("USERPROFILE") == "C:\\Users\\internet"){
+  
+  python_path = paste0("C:\\Users\\internet\\AppData\\Local",
+                     "\\Programs\\Python\\Python312\\python.exe")
+} else {
+  
+  
+  python_path = paste0("C:\\Users\\Home\\AppData\\Local",
+                              "\\Programs\\Python\\Python312\\python.exe")
+  
+}
+
+
+
+
+reticulate::use_python(python_path)
 
 ```
 
@@ -16,19 +34,21 @@ import seaborn as sns
 
 import matplotlib.pyplot as plt
 
+import os 
+
 ```
 
 ```{python import_data}
 
-sales_df = pd.read_csv("C:\\Users\\Home\\Desktop\\example_retail_sales.csv")
+sales_df = pd.read_csv(os.path.expanduser("~/Documents") + 
+"\\DS_advanced_website\\data\\example_retail_sales.csv")
 
-sales_df["date"] = pd.to_datetime(sales_df["date"], format = "%d/%m/%Y")
+sales_df["date"] = pd.to_datetime(sales_df["date"], format = "%m/%d/%Y")
 
 sales_df["sales"] = sales_df["sales"] / 1000
 
 ```
 
-# Raw data
 
 ```{python plot_data}
 
@@ -42,7 +62,11 @@ plt.show()
 
 ## Trend
 
+### Moving averages
+
 ```{python auxilary_plot_functions}
+
+# Auxiliary functions
 
 def plot_combined_trend_and_series(data,**kwargs):
     # Create a plot with two line plots
@@ -67,8 +91,7 @@ def plot_panel(wide_df):
 
 ```
 
-
-```{python calculate_odd_ma}
+```{python plot_odd_ma_facet}
 
 odd_ma_df = sales_df.copy()
 
@@ -76,16 +99,10 @@ for win_len in [3,5,7,9]:
   temp_name = f"ma_{win_len}"
   odd_ma_df[temp_name] = odd_ma_df["sales"].rolling(window = win_len,
                                                     center = True).mean()
-
-```
-
-```{python plot_odd_ma_facet}
-
+                                                    
 plot_panel(odd_ma_df)
 
-
 ```
-
 
 ```{python calculate_even_ma}
 
@@ -97,20 +114,17 @@ for win_len in [4,6,8,12]:
   even_ma_df[temp_name] = even_ma_df[temp_name].rolling(window = 2).mean()
   even_ma_df[temp_name] = even_ma_df[temp_name].shift(-win_len//2)
   
-
-```
-
-
-```{python plot_even_ma_facet}
-
 plot_panel(even_ma_df)
 
 ```
 
 *Important - add an explanation of odd ma (pandas give correct resut) and even ma (pandas give incorrect result, need to apply another 2 MA and center)*
 
+## Seasonality
+
 # Why is decomposition useful
- * EDA:  account for seasonality
- * Pre-processing: identify outliers and impute missing values
- * Feature engineering: construct useful features from time series components
- * Forecasting: forecast each component separately and then combine to produce      the final forecast 
+
+-   EDA: account for seasonality
+-   Pre-processing: identify outliers and impute missing values
+-   Feature engineering: construct useful features from time series components
+-   Forecasting: forecast each component separately and then combine to produce the final forecast
