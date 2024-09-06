@@ -118,7 +118,7 @@ plot_panel(even_ma_df)
 
 ```
 
-*Important - add an explanation of odd ma (pandas give correct resut) and even ma (pandas give incorrect result, need to apply another 2 MA and center)*
+*Important - add an explanation of odd ma (pandas give correct result) and even ma (pandas give incorrect result, need to apply another 2 MA and center)*
 
 ## Seasonality
 

@@ -1,0 +1,137 @@
+---
+title: "Tabularizing time series data"
+---
+
+
+```{r set_up_python}
+#| echo: false
+
+
+if (Sys.getenv("USERPROFILE") == "C:\\Users\\internet"){
+  
+  python_path = paste0("C:\\Users\\internet\\AppData\\Local",
+                     "\\Programs\\Python\\Python312\\python.exe")
+} else {
+  
+  
+  python_path = paste0("C:\\Users\\Home\\AppData\\Local",
+                              "\\Programs\\Python\\Python312\\python.exe")
+  
+}
+
+
+
+
+reticulate::use_python(python_path)
+
+```
+
+```{python}
+
+import pandas as pd
+
+import seaborn as sns
+
+import matplotlib.pyplot as plt
+
+import os 
+
+```
+
+```{python import_data}
+
+multi_items_df = pd.read_csv(os.path.expanduser("~/Documents") + 
+"\\DS_advanced_website\\data\\multi_item_sales.csv")
+
+multi_items_df["date"] = pd.to_datetime(multi_items_df["date"],
+                                        format = "%d/%m/%Y")
+
+```
+
+```{python auxilary_plot_functions}
+
+# Auxiliary functions
+
+def plot_series(data,**kwargs):
+    # Create a plot with two line plots
+    ax = sns.lineplot(x='date', y='sales', data=data)
+    
+    return ax
+
+def plot_panel(long_df):
+  
+  panel_grid = sns.FacetGrid(long_df, col="item_category",
+                             col_wrap=1,height = 2, aspect = 3)
+                             
+  panel_grid.map_dataframe(plot_series)
+  
+  plt.show()
+
+```
+
+
+
+# Intro to timeseries
+
+ - Definition and example
+ - Univariate and multivariate time series
+ - Multiple time series
+ - Regular vs irregular time series
+ - Stationary vs non-stationary
+
+ 
+ 
+Time series data format has (at least) two mandatory components:
+1. The data - a column of values
+2. The time index - an additional column or (more commonly) as index of the pandas Series or Data Frame
+
+
+
+++ explain wide format (in this example a date column and 4 columns one for sales of each item: 'beverages', 'bakery', 'cleaning', 'dairy' )
+
+```{python plot_wide_format}
+
+multi_items_df.head()
+
+
+# Create a figure and axis
+fig, axes = plt.subplots(nrows=4, ncols=1, figsize=(12, 8), sharex=True)
+
+# Plot each series against the date
+for temp_ind in range(1,multi_items_df.shape[1]):
+  
+  temp_col = multi_items_df.columns.values[temp_ind]
+  
+  multi_items_df.plot(x='date', y=temp_col,ax=axes[temp_ind-1],
+                      title=temp_col.title(), legend = False)
+
+# Adjust layout
+plt.tight_layout()
+plt.show()
+
+```
+
+
+++ explain long format (in this example a date column, an item category column and a sales values column)
+
+
+```{python, convert_to_long}
+
+long_format = multi_items_df.melt(id_vars = "date",
+                                  value_vars = ['beverages', 'bakery',
+                                                'cleaning', 'dairy'],
+                                  var_name = "item_category",
+                                  value_name = "sales").copy()
+
+long_format.head()
+
+
+```
+
+```{python plot_long_format}
+
+plot_panel(long_format)
+
+
+
+```

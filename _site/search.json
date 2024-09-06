@@ -2,9 +2,9 @@
   {
     "objectID": "topics/time_series_decomposition.html",
     "href": "topics/time_series_decomposition.html",
-    "title": "Raw data",
+    "title": "Time series decomposition",
     "section": "",
-    "text": "import pandas as pd\n\nimport seaborn as sns\n\nimport matplotlib.pyplot as plt\n\nimport os\nsales_df = pd.read_csv(os.path.expanduser(\"~/Documents\") + \n\"\\\\DS_advanced_website\\\\data\\\\example_retail_sales.csv\")\n\nsales_df[\"date\"] = pd.to_datetime(sales_df[\"date\"], format = \"%m/%d/%Y\")\n\nsales_df[\"sales\"] = sales_df[\"sales\"] / 1000"
+    "text": "import pandas as pd\n\nimport seaborn as sns\n\nimport matplotlib.pyplot as plt\n\nimport os\nsales_df = pd.read_csv(os.path.expanduser(\"~/Documents\") + \n\"\\\\DS_advanced_website\\\\data\\\\example_retail_sales.csv\")\n\nsales_df[\"date\"] = pd.to_datetime(sales_df[\"date\"], format = \"%m/%d/%Y\")\n\nsales_df[\"sales\"] = sales_df[\"sales\"] / 1000\nplt.figure(figsize=(10, 4))\n\nsns.lineplot(x=\"date\", y=\"sales\",marker = \".\", data=sales_df)\nplt.tight_layout()\nplt.show()"
   },
   {
     "objectID": "about.html",
@@ -16,9 +16,9 @@
   {
     "objectID": "topics/time_series_decomposition.html#trend",
     "href": "topics/time_series_decomposition.html#trend",
-    "title": "Raw data",
+    "title": "Time series decomposition",
     "section": "Trend",
-    "text": "Trend\n\n\n# Auxiliary functions\n\ndef plot_combined_trend_and_series(data,**kwargs):\n    # Create a plot with two line plots\n    ax = sns.lineplot(x='date', y='sales', data=data, color=\"lightgray\")\n    \n    sns.lineplot(x='date', y='ma_value', data=data, color=\"steelblue\", ax=ax)\n    \n    return ax\n\ndef plot_panel(wide_df):\n  \n  long_df = wide_df.melt(id_vars=['date', 'sales'],\n                         var_name='ma_type',\n                         value_name='ma_value')\n                         \n  panel_grid = sns.FacetGrid(long_df, col=\"ma_type\",\n                             col_wrap=2,height = 5,aspect = 1.5)\n                             \n  panel_grid.map_dataframe(plot_combined_trend_and_series)\n  \n  plt.show()\n\n\n\nodd_ma_df = sales_df.copy()\n\nfor win_len in [3,5,7,9]:\n  temp_name = f\"ma_{win_len}\"\n  odd_ma_df[temp_name] = odd_ma_df[\"sales\"].rolling(window = win_len,\n                                                    center = True).mean()\n\n\nplot_panel(odd_ma_df)\n\n\n\n\n\n\n\n\n\n\neven_ma_df = sales_df.copy()\n\nfor win_len in [4,6,8,12]:\n  temp_name = f\"ma_{win_len}\"\n  even_ma_df[temp_name] = even_ma_df[\"sales\"].rolling(window = win_len).mean()\n  even_ma_df[temp_name] = even_ma_df[temp_name].rolling(window = 2).mean()\n  even_ma_df[temp_name] = even_ma_df[temp_name].shift(-win_len//2)\n  \n\n\nplot_panel(even_ma_df)\n\n\n\n\n\n\n\n\nImportant - add an explanation of odd ma (pandas give correct resut) and even ma (pandas give incorrect result, need to apply another 2 MA and center)"
+    "text": "Trend\n\nMoving averages\n\n\n# Auxiliary functions\n\ndef plot_combined_trend_and_series(data,**kwargs):\n    # Create a plot with two line plots\n    ax = sns.lineplot(x='date', y='sales', data=data, color=\"lightgray\")\n    \n    sns.lineplot(x='date', y='ma_value', data=data, color=\"steelblue\", ax=ax)\n    \n    return ax\n\ndef plot_panel(wide_df):\n  \n  long_df = wide_df.melt(id_vars=['date', 'sales'],\n                         var_name='ma_type',\n                         value_name='ma_value')\n                         \n  panel_grid = sns.FacetGrid(long_df, col=\"ma_type\",\n                             col_wrap=2,height = 5,aspect = 1.5)\n                             \n  panel_grid.map_dataframe(plot_combined_trend_and_series)\n  \n  plt.show()\n\n\nodd_ma_df = sales_df.copy()\n\nfor win_len in [3,5,7,9]:\n  temp_name = f\"ma_{win_len}\"\n  odd_ma_df[temp_name] = odd_ma_df[\"sales\"].rolling(window = win_len,\n                                                    center = True).mean()\n                                                    \nplot_panel(odd_ma_df)\n\n\n\n\n\n\n\n\n\neven_ma_df = sales_df.copy()\n\nfor win_len in [4,6,8,12]:\n  temp_name = f\"ma_{win_len}\"\n  even_ma_df[temp_name] = even_ma_df[\"sales\"].rolling(window = win_len).mean()\n  even_ma_df[temp_name] = even_ma_df[temp_name].rolling(window = 2).mean()\n  even_ma_df[temp_name] = even_ma_df[temp_name].shift(-win_len//2)\n  \nplot_panel(even_ma_df)\n\n\n\n\n\n\n\n\nImportant - add an explanation of odd ma (pandas give correct result) and even ma (pandas give incorrect result, need to apply another 2 MA and center)"
   },
   {
     "objectID": "index.html",
@@ -26,5 +26,33 @@
     "title": "DS_advanced_website",
     "section": "",
     "text": "This is a Quarto website.\nTo learn more about Quarto websites visit https://quarto.org/docs/websites.\n\n1 + 1\n\n[1] 2"
+  },
+  {
+    "objectID": "topics/tabularizing_time_series/ts_to_table.html",
+    "href": "topics/tabularizing_time_series/ts_to_table.html",
+    "title": "Tabularizing time series data",
+    "section": "",
+    "text": "import pandas as pd\n\nimport seaborn as sns\n\nimport matplotlib.pyplot as plt\n\nimport os \n\n\n\nmulti_items_df = pd.read_csv(os.path.expanduser(\"~/Documents\") + \n\"\\\\DS_advanced_website\\\\data\\\\multi_item_sales.csv\")\n\nmulti_items_df[\"date\"] = pd.to_datetime(multi_items_df[\"date\"],\n                                        format = \"%d/%m/%Y\")\n\n\n\n# Auxiliary functions\n\ndef plot_series(data,**kwargs):\n    # Create a plot with two line plots\n    ax = sns.lineplot(x='date', y='sales', data=data)\n    \n    return ax\n\ndef plot_panel(long_df):\n  \n  panel_grid = sns.FacetGrid(long_df, col=\"item_category\",\n                             col_wrap=1,height = 2, aspect = 3)\n                             \n  panel_grid.map_dataframe(plot_series)\n  \n  plt.show()\n\n\nIntro to timeseries\n\nDefinition and example\nUnivariate and multivariate time series\nMultiple time series\nRegular vs irregular time series\nStationary vs non-stationary\n\nTime series data format has (at least) two mandatory components: 1. The data - a column of values 2. The time index - an additional column or (more commonly) as index of the pandas Series or Data Frame\n++ explain wide format (in this example a date column and 4 columns one for sales of each item: ‘beverages’, ‘bakery’, ‘cleaning’, ‘dairy’ )\n\nmulti_items_df.head()\n\n        date  beverages   bakery  cleaning  dairy\n0 2015-01-02        794  285.628       501    426\n1 2015-01-03        938  289.563       470    568\n2 2015-01-04        574  151.744       312    362\n3 2015-01-05       1299  457.543      1047    814\n4 2015-01-06       1028  405.280       831    679\n\n# Create a figure and axis\nfig, axes = plt.subplots(nrows=4, ncols=1, figsize=(12, 8), sharex=True)\n\n# Plot each series against the date\nfor temp_ind in range(1,multi_items_df.shape[1]):\n  \n  temp_col = multi_items_df.columns.values[temp_ind]\n  \n  multi_items_df.plot(x='date', y=temp_col,ax=axes[temp_ind-1],\n                      title=temp_col.title(), legend = False)\n\n# Adjust layout\nplt.tight_layout()\nplt.show()\n\n\n\n\n\n\n\n\n++ explain long format (in this example a date column, an item category column and a sales values column)\n\nlong_format = multi_items_df.melt(id_vars = \"date\",\n                                  value_vars = ['beverages', 'bakery',\n                                                'cleaning', 'dairy'],\n                                  var_name = \"item_category\",\n                                  value_name = \"sales\").copy()\n\nlong_format.head()\n\n        date item_category   sales\n0 2015-01-02     beverages   794.0\n1 2015-01-03     beverages   938.0\n2 2015-01-04     beverages   574.0\n3 2015-01-05     beverages  1299.0\n4 2015-01-06     beverages  1028.0\n\n\n\nplot_panel(long_format)"
+  },
+  {
+    "objectID": "topics/time_series_decomposition.html#seasonality",
+    "href": "topics/time_series_decomposition.html#seasonality",
+    "title": "Time series decomposition",
+    "section": "Seasonality",
+    "text": "Seasonality"
+  },
+  {
+    "objectID": "topics/tabularizing_time_series/forecasting_demo.html",
+    "href": "topics/tabularizing_time_series/forecasting_demo.html",
+    "title": "Forecasting demonstration",
+    "section": "",
+    "text": "import pandas as pd\n\nimport matplotlib.pyplot as plt\n\nimport os\nfile_path = os.path.expanduser(\"~/Documents\") + \"\\\\DS_advanced_website\\\\data\\\\example_air_quality.csv\"\n\nair_quality_df = pd.read_csv(file_path,\n                             index_col = \"Date_Time\")\n                             \nair_quality_df.index = pd.to_datetime(air_quality_df.index)\n                             \ndel file_path\n++ explain data structure: Date_Time is a timestamp index, CO_sensor is a reading of hourly pollutant quantities, RH is a measure of relative humidity\nfor temp_col in air_quality_df.columns.values:\n  air_quality_df[temp_col].plot(figsize = (20,6))\n  plt.title(temp_col, fontsize=20)  # Increase the title font size\n  plt.tick_params(axis='both', which='major', labelsize=16)\n  plt.xlabel('')  # Disable x-axis label\n  plt.ylabel('')  # Disable y-axis label\n  plt.show()\n++ we’ll highlight the missing values by explicitly converting the frequency of the index to hourly frequency. That will introduce missing points\nimpute_df = air_quality_df.asfreq(\"1h\").copy()\n\nfor temp_col in impute_df.columns:\n  impute_df[temp_col + \"_imputed\"] = impute_df[temp_col]\n  impute_df[temp_col + \"_imputed\"] = impute_df[temp_col + \"_imputed\"].ffill()\n++ explain that we’ll overlay imputed over missing values in order to highlight the missing values present in the data\nfor temp_col in [\"CO_sensor\",\"RH\"]:\n  ax = impute_df[temp_col].plot(figsize = (20,6))\n  impute_df[impute_df[temp_col].isnull()][temp_col + \"_imputed\"].plot(ax = ax,\n  legend = False, marker = \".\", color = \"red\", linestyle='None')\n  plt.title(temp_col, fontsize=20)  # Increase the title font size\n  plt.tick_params(axis='both', which='major', labelsize=16)\n  plt.xlabel('')  # Disable x-axis label\n  plt.ylabel('')  # Disable y-axis label\n  plt.show()"
+  },
+  {
+    "objectID": "topics/tabularizing_time_series/forecasting_demo.html#seasonality",
+    "href": "topics/tabularizing_time_series/forecasting_demo.html#seasonality",
+    "title": "Forecasting demonstration",
+    "section": "Seasonality",
+    "text": "Seasonality\n\nhours_con = impute_df.groupby(impute_df.index.time)[\n  \"CO_sensor\"].mean().reset_index()\n\nhours_con.plot(x = 'index', y = 'CO_sensor', legend = False)\nplt.title(\"Pollutant concentration over day time\")\nplt.xlabel(\"\")\nplt.ylabel(\"\")\nplt.show()\n\n\n\n\n\n\n\n\ndel hours_con"
   }
 ]

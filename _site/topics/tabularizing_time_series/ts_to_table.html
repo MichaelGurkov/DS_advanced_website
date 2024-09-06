@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>DS_advanced_website - Time series decomposition</title>
+<title>DS_advanced_website - Tabularizing time series data</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -57,22 +57,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../">
-<script src="../site_libs/quarto-html/quarto.js"></script>
-<script src="../site_libs/quarto-html/popper.min.js"></script>
-<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -102,7 +102,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 }</script>
 
 
-<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../../styles.css">
 </head>
 
 <body class="nav-fixed">
@@ -112,7 +112,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a class="navbar-brand" href="../index.html">
+    <a class="navbar-brand" href="../../index.html">
     <span class="navbar-title">DS_advanced_website</span>
     </a>
   </div>
@@ -123,11 +123,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="../index.html"> 
+    <a class="nav-link" href="../../index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="../about.html"> 
+    <a class="nav-link" href="../../about.html"> 
 <span class="menu-text">About</span></a>
   </li>  
 </ul>
@@ -146,12 +146,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#trend" id="toc-trend" class="nav-link active" data-scroll-target="#trend">Trend</a>
-  <ul class="collapse">
-  <li><a href="#moving-averages" id="toc-moving-averages" class="nav-link" data-scroll-target="#moving-averages">Moving averages</a></li>
-  </ul></li>
-  <li><a href="#seasonality" id="toc-seasonality" class="nav-link" data-scroll-target="#seasonality">Seasonality</a></li>
-  <li><a href="#why-is-decomposition-useful" id="toc-why-is-decomposition-useful" class="nav-link" data-scroll-target="#why-is-decomposition-useful">Why is decomposition useful</a></li>
+  <li><a href="#intro-to-timeseries" id="toc-intro-to-timeseries" class="nav-link active" data-scroll-target="#intro-to-timeseries">Intro to timeseries</a></li>
   </ul>
 </nav>
     </div>
@@ -160,7 +155,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Time series decomposition</h1>
+<h1 class="title">Tabularizing time series data</h1>
 </div>
 
 
@@ -189,105 +184,102 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>sales_df <span class="op">=</span> pd.read_csv(os.path.expanduser(<span class="st">"~/Documents"</span>) <span class="op">+</span> </span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="st">"</span><span class="ch">\\</span><span class="st">DS_advanced_website</span><span class="ch">\\</span><span class="st">data</span><span class="ch">\\</span><span class="st">example_retail_sales.csv"</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>multi_items_df <span class="op">=</span> pd.read_csv(os.path.expanduser(<span class="st">"~/Documents"</span>) <span class="op">+</span> </span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="st">"</span><span class="ch">\\</span><span class="st">DS_advanced_website</span><span class="ch">\\</span><span class="st">data</span><span class="ch">\\</span><span class="st">multi_item_sales.csv"</span>)</span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>sales_df[<span class="st">"date"</span>] <span class="op">=</span> pd.to_datetime(sales_df[<span class="st">"date"</span>], <span class="bu">format</span> <span class="op">=</span> <span class="st">"%m/</span><span class="sc">%d</span><span class="st">/%Y"</span>)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>sales_df[<span class="st">"sales"</span>] <span class="op">=</span> sales_df[<span class="st">"sales"</span>] <span class="op">/</span> <span class="dv">1000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>multi_items_df[<span class="st">"date"</span>] <span class="op">=</span> pd.to_datetime(multi_items_df[<span class="st">"date"</span>],</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>                                        <span class="bu">format</span> <span class="op">=</span> <span class="st">"</span><span class="sc">%d</span><span class="st">/%m/%Y"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">4</span>))</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>sns.lineplot(x<span class="op">=</span><span class="st">"date"</span>, y<span class="op">=</span><span class="st">"sales"</span>,marker <span class="op">=</span> <span class="st">"."</span>, data<span class="op">=</span>sales_df)</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="time_series_decomposition_files/figure-html/plot_data-1.png" class="img-fluid figure-img" width="960"></p>
-</figure>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Auxiliary functions</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_series(data,<span class="op">**</span>kwargs):</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Create a plot with two line plots</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    ax <span class="op">=</span> sns.lineplot(x<span class="op">=</span><span class="st">'date'</span>, y<span class="op">=</span><span class="st">'sales'</span>, data<span class="op">=</span>data)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ax</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_panel(long_df):</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  panel_grid <span class="op">=</span> sns.FacetGrid(long_df, col<span class="op">=</span><span class="st">"item_category"</span>,</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>                             col_wrap<span class="op">=</span><span class="dv">1</span>,height <span class="op">=</span> <span class="dv">2</span>, aspect <span class="op">=</span> <span class="dv">3</span>)</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>                             </span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  panel_grid.map_dataframe(plot_series)</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>  plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-</div>
-</div>
-<section id="trend" class="level2">
-<h2 class="anchored" data-anchor-id="trend">Trend</h2>
-<section id="moving-averages" class="level3">
-<h3 class="anchored" data-anchor-id="moving-averages">Moving averages</h3>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Auxiliary functions</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_combined_trend_and_series(data,<span class="op">**</span>kwargs):</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Create a plot with two line plots</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    ax <span class="op">=</span> sns.lineplot(x<span class="op">=</span><span class="st">'date'</span>, y<span class="op">=</span><span class="st">'sales'</span>, data<span class="op">=</span>data, color<span class="op">=</span><span class="st">"lightgray"</span>)</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    sns.lineplot(x<span class="op">=</span><span class="st">'date'</span>, y<span class="op">=</span><span class="st">'ma_value'</span>, data<span class="op">=</span>data, color<span class="op">=</span><span class="st">"steelblue"</span>, ax<span class="op">=</span>ax)</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ax</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_panel(wide_df):</span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  long_df <span class="op">=</span> wide_df.melt(id_vars<span class="op">=</span>[<span class="st">'date'</span>, <span class="st">'sales'</span>],</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>                         var_name<span class="op">=</span><span class="st">'ma_type'</span>,</span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>                         value_name<span class="op">=</span><span class="st">'ma_value'</span>)</span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>                         </span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  panel_grid <span class="op">=</span> sns.FacetGrid(long_df, col<span class="op">=</span><span class="st">"ma_type"</span>,</span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>                             col_wrap<span class="op">=</span><span class="dv">2</span>,height <span class="op">=</span> <span class="dv">5</span>,aspect <span class="op">=</span> <span class="fl">1.5</span>)</span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>                             </span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>  panel_grid.map_dataframe(plot_combined_trend_and_series)</span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>  plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>odd_ma_df <span class="op">=</span> sales_df.copy()</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> win_len <span class="kw">in</span> [<span class="dv">3</span>,<span class="dv">5</span>,<span class="dv">7</span>,<span class="dv">9</span>]:</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  temp_name <span class="op">=</span> <span class="ss">f"ma_</span><span class="sc">{</span>win_len<span class="sc">}</span><span class="ss">"</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  odd_ma_df[temp_name] <span class="op">=</span> odd_ma_df[<span class="st">"sales"</span>].rolling(window <span class="op">=</span> win_len,</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>                                                    center <span class="op">=</span> <span class="va">True</span>).mean()</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>                                                    </span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>plot_panel(odd_ma_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="time_series_decomposition_files/figure-html/plot_odd_ma_facet-3.png" class="img-fluid figure-img" width="1440"></p>
-</figure>
-</div>
-</div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>even_ma_df <span class="op">=</span> sales_df.copy()</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> win_len <span class="kw">in</span> [<span class="dv">4</span>,<span class="dv">6</span>,<span class="dv">8</span>,<span class="dv">12</span>]:</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  temp_name <span class="op">=</span> <span class="ss">f"ma_</span><span class="sc">{</span>win_len<span class="sc">}</span><span class="ss">"</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  even_ma_df[temp_name] <span class="op">=</span> even_ma_df[<span class="st">"sales"</span>].rolling(window <span class="op">=</span> win_len).mean()</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  even_ma_df[temp_name] <span class="op">=</span> even_ma_df[temp_name].rolling(window <span class="op">=</span> <span class="dv">2</span>).mean()</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  even_ma_df[temp_name] <span class="op">=</span> even_ma_df[temp_name].shift(<span class="op">-</span>win_len<span class="op">//</span><span class="dv">2</span>)</span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>plot_panel(even_ma_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="time_series_decomposition_files/figure-html/calculate_even_ma-5.png" class="img-fluid figure-img" width="1440"></p>
-</figure>
-</div>
-</div>
-</div>
-<p><em>Important - add an explanation of odd ma (pandas give correct result) and even ma (pandas give incorrect result, need to apply another 2 MA and center)</em></p>
-</section>
-</section>
-<section id="seasonality" class="level2">
-<h2 class="anchored" data-anchor-id="seasonality">Seasonality</h2>
-</section>
-<section id="why-is-decomposition-useful" class="level1">
-<h1>Why is decomposition useful</h1>
+<section id="intro-to-timeseries" class="level1">
+<h1>Intro to timeseries</h1>
 <ul>
-<li>EDA: account for seasonality</li>
-<li>Pre-processing: identify outliers and impute missing values</li>
-<li>Feature engineering: construct useful features from time series components</li>
-<li>Forecasting: forecast each component separately and then combine to produce the final forecast</li>
+<li>Definition and example</li>
+<li>Univariate and multivariate time series</li>
+<li>Multiple time series</li>
+<li>Regular vs irregular time series</li>
+<li>Stationary vs non-stationary</li>
 </ul>
+<p>Time series data format has (at least) two mandatory components: 1. The data - a column of values 2. The time index - an additional column or (more commonly) as index of the pandas Series or Data Frame</p>
+<p>++ explain wide format (in this example a date column and 4 columns one for sales of each item: ‘beverages’, ‘bakery’, ‘cleaning’, ‘dairy’ )</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>multi_items_df.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        date  beverages   bakery  cleaning  dairy
+0 2015-01-02        794  285.628       501    426
+1 2015-01-03        938  289.563       470    568
+2 2015-01-04        574  151.744       312    362
+3 2015-01-05       1299  457.543      1047    814
+4 2015-01-06       1028  405.280       831    679</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a figure and axis</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(nrows<span class="op">=</span><span class="dv">4</span>, ncols<span class="op">=</span><span class="dv">1</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">8</span>), sharex<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot each series against the date</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> temp_ind <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>,multi_items_df.shape[<span class="dv">1</span>]):</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  temp_col <span class="op">=</span> multi_items_df.columns.values[temp_ind]</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>  multi_items_df.plot(x<span class="op">=</span><span class="st">'date'</span>, y<span class="op">=</span>temp_col,ax<span class="op">=</span>axes[temp_ind<span class="op">-</span><span class="dv">1</span>],</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>                      title<span class="op">=</span>temp_col.title(), legend <span class="op">=</span> <span class="va">False</span>)</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Adjust layout</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ts_to_table_files/figure-html/plot_wide_format-1.png" class="img-fluid figure-img" width="1152"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>++ explain long format (in this example a date column, an item category column and a sales values column)</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>long_format <span class="op">=</span> multi_items_df.melt(id_vars <span class="op">=</span> <span class="st">"date"</span>,</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>                                  value_vars <span class="op">=</span> [<span class="st">'beverages'</span>, <span class="st">'bakery'</span>,</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>                                                <span class="st">'cleaning'</span>, <span class="st">'dairy'</span>],</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>                                  var_name <span class="op">=</span> <span class="st">"item_category"</span>,</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>                                  value_name <span class="op">=</span> <span class="st">"sales"</span>).copy()</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>long_format.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        date item_category   sales
+0 2015-01-02     beverages   794.0
+1 2015-01-03     beverages   938.0
+2 2015-01-04     beverages   574.0
+3 2015-01-05     beverages  1299.0
+4 2015-01-06     beverages  1028.0</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>plot_panel(long_format)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ts_to_table_files/figure-html/plot_long_format-3.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
 
 
 </section>

@@ -1,0 +1,113 @@
+---
+title: "Forecasting demonstration"
+---
+
+
+```{r set_up_python, echo=FALSE}
+#|echo: FALSE
+
+
+if (Sys.getenv("USERPROFILE") == "C:\\Users\\internet"){
+  
+  python_path = paste0("C:\\Users\\internet\\AppData\\Local",
+                     "\\Programs\\Python\\Python312\\python.exe")
+} else {
+  
+  
+  python_path = paste0("C:\\Users\\Home\\AppData\\Local",
+                              "\\Programs\\Python\\Python312\\python.exe")
+  
+}
+
+
+
+
+reticulate::use_python(python_path)
+
+```
+
+```{python}
+
+import pandas as pd
+
+import matplotlib.pyplot as plt
+
+import os 
+
+```
+
+```{python import_data}
+
+file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_air_quality.csv"
+
+air_quality_df = pd.read_csv(file_path,
+                             index_col = "Date_Time")
+                             
+air_quality_df.index = pd.to_datetime(air_quality_df.index)
+                             
+del file_path
+
+```
+
+++ explain data structure: Date_Time is a timestamp index, CO_sensor is a reading of hourly pollutant quantities, RH is a measure of relative humidity
+
+```{python plot_data}
+
+for temp_col in air_quality_df.columns.values:
+  air_quality_df[temp_col].plot(figsize = (20,6))
+  plt.title(temp_col, fontsize=20)  # Increase the title font size
+  plt.tick_params(axis='both', which='major', labelsize=16)
+  plt.xlabel('')  # Disable x-axis label
+  plt.ylabel('')  # Disable y-axis label
+  plt.show()
+
+```
+
+++ we'll highlight the missing values by explicitly converting the frequency of the index to hourly frequency. That will introduce missing points
+
+
+```{python impute_missing_values}
+
+impute_df = air_quality_df.asfreq("1h").copy()
+
+for temp_col in impute_df.columns:
+  impute_df[temp_col + "_imputed"] = impute_df[temp_col]
+  impute_df[temp_col + "_imputed"] = impute_df[temp_col + "_imputed"].ffill()
+  
+
+```
+
+++ explain that we'll overlay imputed over missing values in order to highlight
+the missing values present in the data
+
+```{python plot_missing_and_imputed_values}
+
+for temp_col in ["CO_sensor","RH"]:
+  ax = impute_df[temp_col].plot(figsize = (20,6))
+  impute_df[impute_df[temp_col].isnull()][temp_col + "_imputed"].plot(ax = ax,
+  legend = False, marker = ".", color = "red", linestyle='None')
+  plt.title(temp_col, fontsize=20)  # Increase the title font size
+  plt.tick_params(axis='both', which='major', labelsize=16)
+  plt.xlabel('')  # Disable x-axis label
+  plt.ylabel('')  # Disable y-axis label
+  plt.show()
+
+```
+
+
+## Seasonality
+
+```{python}
+
+hours_con = impute_df.groupby(impute_df.index.time)[
+  "CO_sensor"].mean().reset_index()
+
+hours_con.plot(x = 'index', y = 'CO_sensor', legend = False)
+plt.title("Pollutant concentration over day time")
+plt.xlabel("")
+plt.ylabel("")
+plt.show()
+
+del hours_con
+```
+
