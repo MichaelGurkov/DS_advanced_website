@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>DS_advanced_website - Forecasting demonstration - EDA</title>
+<title>DS_advanced_website - Forecasting demonstration</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -147,7 +147,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul>
   <li><a href="#data-loading" id="toc-data-loading" class="nav-link active" data-scroll-target="#data-loading">Data loading</a></li>
-  <li><a href="#missing-values" id="toc-missing-values" class="nav-link" data-scroll-target="#missing-values">Missing values</a></li>
+  <li><a href="#missing-values-handling" id="toc-missing-values-handling" class="nav-link" data-scroll-target="#missing-values-handling">Missing values handling</a></li>
   <li><a href="#seasonality" id="toc-seasonality" class="nav-link" data-scroll-target="#seasonality">Seasonality</a></li>
   </ul>
 </nav>
@@ -157,7 +157,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Forecasting demonstration - EDA</h1>
+<h1 class="title">Forecasting demonstration</h1>
 </div>
 
 
@@ -203,22 +203,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="forecasting_demo_files/figure-html/plot_data-1.png" class="img-fluid figure-img" width="1920"></p>
+<p><img src="forecasting_demo_updated_files/figure-html/plot_data-1.png" class="img-fluid figure-img" width="1920"></p>
 </figure>
 </div>
 </div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="forecasting_demo_files/figure-html/plot_data-2.png" class="img-fluid figure-img" width="1920"></p>
+<p><img src="forecasting_demo_updated_files/figure-html/plot_data-2.png" class="img-fluid figure-img" width="1920"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>Here, we plot each of the columns in the dataset (<code>CO_sensor</code> and <code>RH</code>) to visually explore the time series data. These plots provide a general understanding of how pollutant levels (CO_sensor) and humidity (RH) fluctuate over time. Larger trends, spikes, or patterns such as seasonality may already be visible, and such visualizations are a useful first step before deeper analysis.</p>
 </section>
-<section id="missing-values" class="level2">
-<h2 class="anchored" data-anchor-id="missing-values">Missing values</h2>
+<section id="missing-values-handling" class="level2">
+<h2 class="anchored" data-anchor-id="missing-values-handling">Missing values handling</h2>
 <p>To handle missing data in a time series, we first ensure that our data is uniformly spaced by converting the <code>Date_Time</code> index to an hourly frequency using the <code>.asfreq("1h")</code> method. This step introduces explicit gaps for any missing data points, making them easier to detect. This is important in time series analysis because irregular time steps can mislead algorithms, and most forecasting models require data to be at regular intervals.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a></span>
@@ -251,14 +251,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="forecasting_demo_files/figure-html/plot_missing_and_imputed_values-5.png" class="img-fluid figure-img" width="1920"></p>
+<p><img src="forecasting_demo_updated_files/figure-html/plot_missing_and_imputed_values-5.png" class="img-fluid figure-img" width="1920"></p>
 </figure>
 </div>
 </div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="forecasting_demo_files/figure-html/plot_missing_and_imputed_values-6.png" class="img-fluid figure-img" width="1920"></p>
+<p><img src="forecasting_demo_updated_files/figure-html/plot_missing_and_imputed_values-6.png" class="img-fluid figure-img" width="1920"></p>
 </figure>
 </div>
 </div>
@@ -280,7 +280,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="forecasting_demo_files/figure-html/plot_seasonality-9.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="forecasting_demo_updated_files/figure-html/plot_seasonality-9.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>

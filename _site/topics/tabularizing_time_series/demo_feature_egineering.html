@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>DS_advanced_website - Forecasting demonstration - EDA</title>
+<title>DS_advanced_website - Forecasting demonstration - feature engineering</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -147,8 +147,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul>
   <li><a href="#data-loading" id="toc-data-loading" class="nav-link active" data-scroll-target="#data-loading">Data loading</a></li>
-  <li><a href="#missing-values" id="toc-missing-values" class="nav-link" data-scroll-target="#missing-values">Missing values</a></li>
-  <li><a href="#seasonality" id="toc-seasonality" class="nav-link" data-scroll-target="#seasonality">Seasonality</a></li>
+  <li><a href="#time-related-features" id="toc-time-related-features" class="nav-link" data-scroll-target="#time-related-features">Time related features</a></li>
+  <li><a href="#lag-features" id="toc-lag-features" class="nav-link" data-scroll-target="#lag-features">Lag features</a></li>
+  <li><a href="#window-features" id="toc-window-features" class="nav-link" data-scroll-target="#window-features">Window features</a></li>
+  <li><a href="#periodic-features" id="toc-periodic-features" class="nav-link" data-scroll-target="#periodic-features">Periodic features</a></li>
   </ul>
 </nav>
     </div>
@@ -157,7 +159,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Forecasting demonstration - EDA</h1>
+<h1 class="title">Forecasting demonstration - feature engineering</h1>
 </div>
 
 
@@ -192,97 +194,162 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>air_quality_df.index <span class="op">=</span> pd.to_datetime(air_quality_df.index)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>The dataset <code>air_quality_df</code> is loaded from a CSV file and indexed by a column named <code>Date_Time</code>, which represents timestamps of the air quality readings. This timestamp index is essential for time series analysis, allowing us to analyze the data in chronological order. The dataset includes sensor readings such as <code>CO_sensor</code>, which captures the concentration of carbon monoxide (CO) in the air, and <code>RH</code>, which records relative humidity (RH) levels. These two variables provide environmental and pollutant measurements that will be key in our analysis.</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> temp_col <span class="kw">in</span> air_quality_df.columns.values:</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  air_quality_df[temp_col].plot(figsize <span class="op">=</span> (<span class="dv">20</span>,<span class="dv">6</span>))</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  plt.title(temp_col, fontsize<span class="op">=</span><span class="dv">20</span>)  <span class="co"># Increase the title font size</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  plt.tick_params(axis<span class="op">=</span><span class="st">'both'</span>, which<span class="op">=</span><span class="st">'major'</span>, labelsize<span class="op">=</span><span class="dv">16</span>)</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  plt.xlabel(<span class="st">''</span>)  <span class="co"># Disable x-axis label</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  plt.ylabel(<span class="st">''</span>)  <span class="co"># Disable y-axis label</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="forecasting_demo_files/figure-html/plot_data-1.png" class="img-fluid figure-img" width="1920"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="forecasting_demo_files/figure-html/plot_data-2.png" class="img-fluid figure-img" width="1920"></p>
-</figure>
-</div>
-</div>
-</div>
-<p>Here, we plot each of the columns in the dataset (<code>CO_sensor</code> and <code>RH</code>) to visually explore the time series data. These plots provide a general understanding of how pollutant levels (CO_sensor) and humidity (RH) fluctuate over time. Larger trends, spikes, or patterns such as seasonality may already be visible, and such visualizations are a useful first step before deeper analysis.</p>
 </section>
-<section id="missing-values" class="level2">
-<h2 class="anchored" data-anchor-id="missing-values">Missing values</h2>
-<p>To handle missing data in a time series, we first ensure that our data is uniformly spaced by converting the <code>Date_Time</code> index to an hourly frequency using the <code>.asfreq("1h")</code> method. This step introduces explicit gaps for any missing data points, making them easier to detect. This is important in time series analysis because irregular time steps can mislead algorithms, and most forecasting models require data to be at regular intervals.</p>
+<section id="time-related-features" class="level2">
+<h2 class="anchored" data-anchor-id="time-related-features">Time related features</h2>
+<p>In this section, we extract time-related features that are essential for improving the performance of our forecasting model. These features include temporal information such as the month, day, and hour of each observation. These are known as “future-known” features, meaning that their values for future timestamps are already known at the time of making a forecast. For example, we always know in advance what the month or hour will be for any given future date. These time-related features provide useful context that can help the model better understand seasonal patterns, daily fluctuations, or other time-dependent behaviors in the data.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>impute_df <span class="op">=</span> air_quality_df.asfreq(<span class="st">"1h"</span>).copy()</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> temp_col <span class="kw">in</span> impute_df.columns:</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  impute_df[temp_col <span class="op">+</span> <span class="st">"_imputed"</span>] <span class="op">=</span> impute_df[temp_col]</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  impute_df[temp_col <span class="op">+</span> <span class="st">"_imputed"</span>] <span class="op">=</span> impute_df[temp_col <span class="op">+</span> <span class="st">"_imputed"</span>].ffill()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>In this block, we handle missing values by forward-filling the gaps (<code>.ffill()</code>), which propagates the last observed value forward until a new valid observation is encountered. This is a common imputation technique for time series data, especially in scenarios where missing values are sparse or values don’t drastically change within short time frames.</p>
-<p>We create new columns (e.g., <code>CO_sensor_imputed</code>, <code>RH_imputed</code>) that store the imputed data, while retaining the original columns for comparison and visualization of the missing values.</p>
-<p>Next, we will overlay the imputed values onto the original time series to visually highlight where data was missing and how it was filled.</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> temp_col <span class="kw">in</span> [<span class="st">"CO_sensor"</span>,<span class="st">"RH"</span>]:</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  ax <span class="op">=</span> impute_df[temp_col].plot(figsize <span class="op">=</span> (<span class="dv">20</span>,<span class="dv">6</span>))</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  impute_df[impute_df[temp_col].isnull()][temp_col <span class="op">+</span> <span class="st">"_imputed"</span>].plot(</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    ax <span class="op">=</span> ax,legend <span class="op">=</span> <span class="va">False</span>,marker <span class="op">=</span> <span class="st">"."</span>, color <span class="op">=</span> <span class="st">"red"</span>, linestyle<span class="op">=</span><span class="st">'None'</span>)</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  plt.title(temp_col, fontsize<span class="op">=</span><span class="dv">20</span>)  <span class="co"># Increase the title font size</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  plt.tick_params(axis<span class="op">=</span><span class="st">'both'</span>, which<span class="op">=</span><span class="st">'major'</span>, labelsize<span class="op">=</span><span class="dv">16</span>)</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  plt.xlabel(<span class="st">''</span>)  <span class="co"># Disable x-axis label</span></span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  plt.ylabel(<span class="st">''</span>)  <span class="co"># Disable y-axis label</span></span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="forecasting_demo_files/figure-html/plot_missing_and_imputed_values-5.png" class="img-fluid figure-img" width="1920"></p>
-</figure>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>calendar_df <span class="op">=</span> pd.DataFrame(index <span class="op">=</span> air_quality_df.index)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>calendar_df[<span class="st">"Month"</span>] <span class="op">=</span> air_quality_df.index.month</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>calendar_df[<span class="st">"Day"</span>] <span class="op">=</span> air_quality_df.index.day</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>calendar_df[<span class="st">"Hour"</span>] <span class="op">=</span> air_quality_df.index.hour</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>calendar_df.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                     Month  Day  Hour
+Date_Time                            
+2004-04-04 00:00:00      4    4     0
+2004-04-04 01:00:00      4    4     1
+2004-04-04 02:00:00      4    4     2
+2004-04-04 03:00:00      4    4     3
+2004-04-04 04:00:00      4    4     4</code></pre>
 </div>
 </div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="forecasting_demo_files/figure-html/plot_missing_and_imputed_values-6.png" class="img-fluid figure-img" width="1920"></p>
-</figure>
-</div>
-</div>
-</div>
-<p>The purpose of this code block is to visualize the missing data points and the corresponding imputed values. The original data is plotted as a line, and any missing data points that were imputed are marked with red dots. This method of visual comparison allows us to easily inspect where the forward fill occurred and ensures that the imputation technique was applied correctly without distorting the overall time series pattern.</p>
 </section>
-<section id="seasonality" class="level2">
-<h2 class="anchored" data-anchor-id="seasonality">Seasonality</h2>
-<p>Seasonality refers to recurring patterns or cycles in data that occur at regular intervals, such as daily or yearly trends. By grouping the data by time of day (i.e., the hour) and averaging across all observations for that time, we can observe how pollutant concentrations (like CO_sensor) vary over the course of a typical day. This allows us to detect intra-day seasonality, which is particularly relevant for environmental and pollution data that may exhibit daily cycles due to human activity or environmental factors.</p>
+<section id="lag-features" class="level2">
+<h2 class="anchored" data-anchor-id="lag-features">Lag features</h2>
+<p>Lag features capture values from previous time points and can be particularly useful in forecasting. For instance, the concentration of CO at the current hour could be related to the concentration of CO from one or 24 hours ago. By introducing lagged versions of the original features, the model gains insight into how past values may influence future outcomes.</p>
+<p>In the code, we generate lag features for each variable using a set of lag intervals (1 hour and 24 hours). This is done by shifting the values in the dataset by the specified lag periods. However, this process creates missing values for the initial time steps where the lagged data is not available (e.g., if we’re using a 24-hour lag, the first 24 hours will have missing values). These missing values will need to be handled later by either imputing them or dropping the corresponding rows.</p>
+<p>Additionally, note the use of parentheses to continue the statement across lines in the loop. This enhances code readability and makes it easier to follow the logic.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>hours_con <span class="op">=</span> impute_df.groupby(impute_df.index.time)[</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"CO_sensor"</span>].mean().reset_index()</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>hours_con.plot(x <span class="op">=</span> <span class="st">'index'</span>, y <span class="op">=</span> <span class="st">'CO_sensor'</span>, legend <span class="op">=</span> <span class="va">False</span>)</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"Pollutant concentration over day time"</span>)</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">""</span>)</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">""</span>)</span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="forecasting_demo_files/figure-html/plot_seasonality-9.png" class="img-fluid figure-img" width="672"></p>
-</figure>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>lag_features_df <span class="op">=</span> pd.DataFrame(index <span class="op">=</span> air_quality_df.index)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>lags <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">24</span>]</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> temp_col <span class="kw">in</span> air_quality_df.columns:</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> temp_lag <span class="kw">in</span> lags:</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    lag_features_df[temp_col <span class="op">+</span> <span class="st">"_lag_"</span> <span class="op">+</span> <span class="bu">str</span>(temp_lag)] <span class="op">=</span> (</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>      air_quality_df[temp_col].shift(freq <span class="op">=</span> <span class="bu">str</span>(temp_lag) <span class="op">+</span> <span class="st">"h"</span>)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>lag_features_df.head(<span class="dv">25</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                     CO_sensor_lag_1  CO_sensor_lag_24  RH_lag_1  RH_lag_24
+Date_Time                                                                  
+2004-04-04 00:00:00              NaN               NaN       NaN        NaN
+2004-04-04 01:00:00           1224.0               NaN      56.5        NaN
+2004-04-04 02:00:00           1215.0               NaN      59.2        NaN
+2004-04-04 03:00:00           1115.0               NaN      62.4        NaN
+2004-04-04 04:00:00           1124.0               NaN      65.0        NaN
+2004-04-04 05:00:00           1028.0               NaN      65.3        NaN
+2004-04-04 06:00:00           1010.0               NaN      66.5        NaN
+2004-04-04 07:00:00           1074.0               NaN      69.1        NaN
+2004-04-04 08:00:00           1034.0               NaN      64.8        NaN
+2004-04-04 09:00:00           1130.0               NaN      59.0        NaN
+2004-04-04 10:00:00           1275.0               NaN      49.8        NaN
+2004-04-04 11:00:00           1324.0               NaN      40.7        NaN
+2004-04-04 12:00:00           1268.0               NaN      37.1        NaN
+2004-04-04 13:00:00           1272.0               NaN      33.8        NaN
+2004-04-04 14:00:00           1160.0               NaN      32.1        NaN
+2004-04-04 15:00:00           1136.0               NaN      31.1        NaN
+2004-04-04 16:00:00           1296.0               NaN      30.8        NaN
+2004-04-04 17:00:00           1345.0               NaN      36.0        NaN
+2004-04-04 18:00:00           1296.0               NaN      36.2        NaN
+2004-04-04 19:00:00           1258.0               NaN      39.3        NaN
+2004-04-04 20:00:00           1420.0               NaN      44.6        NaN
+2004-04-04 21:00:00           1366.0               NaN      48.9        NaN
+2004-04-04 22:00:00           1113.0               NaN      56.1        NaN
+2004-04-04 23:00:00           1196.0               NaN      58.8        NaN
+2004-04-05 00:00:00           1188.0            1224.0      60.8       56.5</code></pre>
 </div>
+</div>
+</section>
+<section id="window-features" class="level2">
+<h2 class="anchored" data-anchor-id="window-features">Window features</h2>
+<p>Window features represent rolling statistics (such as averages) calculated over a fixed window of previous time points. These are useful in capturing short-term trends in the data. For example, the mean CO concentration over the past three or seven hours might provide valuable information for predicting future values.</p>
+<p>In the code, we generate window features by computing the rolling mean over windows of 3 and 7 hours. The <code>.shift()</code> function is applied to ensure that the calculated window statistics are available only for past observations (i.e., the mean is based on past data up to the current time point). This ensures that the model respects the forecasting principle of only using information that would have been available at the time of prediction.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>window_features_df <span class="op">=</span> pd.DataFrame(index <span class="op">=</span> air_quality_df.index)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>windows <span class="op">=</span> [<span class="dv">3</span>, <span class="dv">7</span>]</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> temp_col <span class="kw">in</span> air_quality_df.columns:</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> temp_win <span class="kw">in</span> windows:</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    window_features_df[temp_col <span class="op">+</span> <span class="st">"_win_"</span> <span class="op">+</span> <span class="bu">str</span>(temp_win)] <span class="op">=</span> (</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>      air_quality_df[temp_col]</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>      .rolling(window <span class="op">=</span> temp_win).mean()</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>      .shift(freq <span class="op">=</span> <span class="st">"1h"</span>)</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>window_features_df.head(<span class="dv">8</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                     CO_sensor_win_3  CO_sensor_win_7   RH_win_3   RH_win_7
+Date_Time                                                                  
+2004-04-04 00:00:00              NaN              NaN        NaN        NaN
+2004-04-04 01:00:00              NaN              NaN        NaN        NaN
+2004-04-04 02:00:00              NaN              NaN        NaN        NaN
+2004-04-04 03:00:00      1184.666667              NaN  59.366667        NaN
+2004-04-04 04:00:00      1151.333333              NaN  62.200000        NaN
+2004-04-04 05:00:00      1089.000000              NaN  64.233333        NaN
+2004-04-04 06:00:00      1054.000000              NaN  65.600000        NaN
+2004-04-04 07:00:00      1037.333333      1112.857143  66.966667  63.428571</code></pre>
+</div>
+</div>
+<p>Let’s verify the calculation of the 3-hour window feature manually. We want to compute the mean CO concentration for the hours leading up to “2004-04-04 03:00:00” (i.e., using data from “2004-04-04 00:00:00” to “2004-04-04 02:00:00”).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>expected_value <span class="op">=</span> air_quality_df.loc[</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  (air_quality_df.index <span class="op">&gt;=</span> pd.Timestamp(<span class="st">"2004-04-04 00:00:00"</span>)) <span class="op">&amp;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  (air_quality_df.index <span class="op">&lt;=</span> pd.Timestamp(<span class="st">"2004-04-04 02:00:00"</span>))</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  ][<span class="st">"CO_sensor"</span>].mean()</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>expected_value <span class="op">=</span> <span class="bu">round</span>(expected_value,<span class="dv">3</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>calculated_value <span class="op">=</span> window_features_df.loc[</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>window_features_df.index <span class="op">==</span> pd.Timestamp(<span class="st">"2004-04-04 03:00:00"</span>)</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>][<span class="st">"CO_sensor_win_3"</span>].iloc[<span class="dv">0</span>]</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>calculated_value <span class="op">=</span> <span class="bu">round</span>(calculated_value,<span class="dv">3</span>)</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (expected_value <span class="op">==</span> calculated_value):</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>  <span class="bu">print</span>(<span class="ss">f'''</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="ss">  the expected value is </span><span class="sc">{</span>expected_value<span class="sc">}</span><span class="ss">, the calculated value is </span><span class="sc">{</span>calculated_value<span class="sc">}</span><span class="ss">. </span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="ss">  We're good!</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a><span class="ss">  '''</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+  the expected value is 1184.667, the calculated value is 1184.667. 
+  We're good!
+  </code></pre>
+</div>
+</div>
+</section>
+<section id="periodic-features" class="level2">
+<h2 class="anchored" data-anchor-id="periodic-features">Periodic features</h2>
+<p>Certain time-related features, such as the month or hour, follow a cyclical pattern. For instance, December (month 12) is closer to January (month 1) than it is to April (month 4), even though 12 is numerically farther from 1 than from 4. To capture this cyclical nature, we can transform these features using periodic functions such as sine and cosine.</p>
+<p>By converting numerical time features into cyclical features, we help the model learn seasonal patterns more effectively. For this purpose, we use the <code>feature_engine</code> library to create these cyclical features for our dataset.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> feature_engine.creation <span class="im">import</span> CyclicalFeatures</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>cyclical <span class="op">=</span> CyclicalFeatures(</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  drop_original <span class="op">=</span> <span class="va">True</span>,</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>cyclycal_df <span class="op">=</span> cyclical.fit_transform(calendar_df)</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>cyclycal_df.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                     Month_sin  Month_cos  ...  Hour_sin  Hour_cos
+Date_Time                                  ...                    
+2004-04-04 00:00:00   0.866025       -0.5  ...  0.000000  1.000000
+2004-04-04 01:00:00   0.866025       -0.5  ...  0.269797  0.962917
+2004-04-04 02:00:00   0.866025       -0.5  ...  0.519584  0.854419
+2004-04-04 03:00:00   0.866025       -0.5  ...  0.730836  0.682553
+2004-04-04 04:00:00   0.866025       -0.5  ...  0.887885  0.460065
+
+[5 rows x 6 columns]</code></pre>
 </div>
 </div>
 
