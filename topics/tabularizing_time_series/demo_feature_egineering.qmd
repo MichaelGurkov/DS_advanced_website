@@ -1,7 +1,7 @@
 ---
   title: "Forecasting demonstration - feature engineering"
 ---
-  
+
 ```{r set_up_python, echo=FALSE}
 #|echo: FALSE
 
@@ -41,8 +41,6 @@ air_quality_df.index = pd.to_datetime(air_quality_df.index)
 ```
 
 The dataset `air_quality_df` is loaded from a CSV file and indexed by a column named `Date_Time`, which represents timestamps of the air quality readings. This timestamp index is essential for time series analysis, allowing us to analyze the data in chronological order. The dataset includes sensor readings such as `CO_sensor`, which captures the concentration of carbon monoxide (CO) in the air, and `RH`, which records relative humidity (RH) levels. These two variables provide environmental and pollutant measurements that will be key in our analysis.
-
-
 
 ## Time related features
 
@@ -88,7 +86,7 @@ lag_features_df.head(25)
 
 ## Window features
 
-Window features represent rolling statistics (such as averages) calculated over a fixed window of previous time points. These are useful in capturing short-term trends in the data. For example, the mean CO concentration over the past three or seven hours might provide valuable information for predicting future values. 
+Window features represent rolling statistics (such as averages) calculated over a fixed window of previous time points. These are useful in capturing short-term trends in the data. For example, the mean CO concentration over the past three or seven hours might provide valuable information for predicting future values.
 
 In the code, we generate window features by computing the rolling mean over windows of 3 and 7 hours. The `.shift()` function is applied to ensure that the calculated window statistics are available only for past observations (i.e., the mean is based on past data up to the current time point). This ensures that the model respects the forecasting principle of only using information that would have been available at the time of prediction.
 
@@ -150,8 +148,21 @@ cyclical = CyclicalFeatures(
   drop_original = True,
 )
 
-cyclycal_df = cyclical.fit_transform(calendar_df)
+cyclical_df = cyclical.fit_transform(calendar_df)
 
-cyclycal_df.head()
+cyclical_df.head()
 
 ```
+
+## Save processed data
+
+```{python}
+
+processed_df = pd.concat([air_quality_df, calendar_df,lag_features_df, cyclical_df], axis = 1)
+
+processed_df.dropna(inplace = True)
+
+processed_df.to_csv(os.path.expanduser("~/Documents") + "\\DS_advanced_website" + "\\data\\air_quality_processed_df.csv")
+
+```
+
