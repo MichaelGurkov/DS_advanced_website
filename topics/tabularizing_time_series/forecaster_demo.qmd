@@ -1,7 +1,7 @@
 ---
   title: "Forecasting demonstration - EDA"
 ---
-  
+
 ```{r set_up_python, echo=FALSE}
 #|echo: FALSE
 
@@ -41,10 +41,7 @@ air_quality_processed_df.index = pd.to_datetime(air_quality_processed_df.index)
 
 ```
 
-
-
 ## Compare models
-
 
 ```{python split_data}
 
@@ -62,7 +59,6 @@ y_vec_test = y_vec.loc[X_mat.index > pd.to_datetime("2005-03-04")]
 
 
 ```
-
 
 ### Naive model
 
@@ -89,7 +85,6 @@ lin_reg_forecast = lin_reg.predict(X_mat_test)
 
 ```
 
-
 ### Random forest
 
 ```{python random_forest_forecast}
@@ -111,7 +106,6 @@ rand_forest_forecast = lin_reg.predict(X_mat_test)
 
 ### Evaluate models
 
-
 ```{python }
 
 from sklearn.metrics import root_mean_squared_error
@@ -125,4 +119,3 @@ print(f"Random forest error is {root_mean_squared_error(rand_forest_forecast, y_
 
 
 ```
-

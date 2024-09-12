@@ -156,6 +156,8 @@ cyclical_df.head()
 
 ## Save processed data
 
+++ explain that we need to deal with missing values that were introduced because of preprocessing (lags, etc). We need to impute or to drop the missing values. We'll drop them because the amount of NA's is relatively small
+
 ```{python}
 
 processed_df = pd.concat([air_quality_df, calendar_df,lag_features_df, cyclical_df], axis = 1)
