@@ -1,5 +1,5 @@
 ---
-  title: "Forecasting demonstration - feature engineering"
+title: "Feature Engineering"
 ---
 
 ```{r set_up_python, echo=FALSE}
@@ -26,6 +26,8 @@ import matplotlib.pyplot as plt
 import os 
 
 ```
+
+Feature engineering is the process of transforming and creating new input variables, or features, from raw data to improve the performance of predictive models. It involves converting raw data into meaningful inputs that capture underlying patterns or relationships useful for forecasting. In the context of time series forecasting, the choice of features can significantly impact the model's ability to make accurate predictions. For example, simply using the raw values of a time series may not be enough for the model to capture complex temporal dynamics such as trends or seasonality. Therefore, transforming features or creating new ones like time-based features, lag features, or cyclical patterns is crucial. This tutorial will demonstrate several types of feature transformations, including time-related features, lag features, window (rolling) features, and periodic features. This is only a short demonstration, each type will be covered in detail in its respective section.
 
 ## Data loading
 

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>DS_advanced_website - Forecasting demonstration - EDA</title>
+<title>DS_advanced_website - Forecasting demonstration</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -162,7 +162,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Forecasting demonstration - EDA</h1>
+<h1 class="title">Forecasting demonstration</h1>
 </div>
 
 
@@ -185,9 +185,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>This is a demonstration of forecasting comparing two models. The data is the preprocessed data set after feature engineering</p>
+<p>In this section, we provide a brief demonstration of a forecasting problem where we compare the performance of two models, a Linear Regression model and a Random Forest Regressor, along with a naive benchmark model. The naive model uses the last known value as the forecast for the next time step. This demonstration focuses on predicting air quality (specifically CO sensor data) based on historical features. The purpose of this exercise is to showcase how different models perform in terms of forecast accuracy, evaluated using Root Mean Squared Error (RMSE), a common metric for assessing regression models.</p>
 <section id="data-loading" class="level2">
 <h2 class="anchored" data-anchor-id="data-loading">Data loading</h2>
+<p>We start by loading a preprocessed dataset that has already undergone feature engineering. The dataset contains time series data related to air quality, indexed by date and time. The file is loaded as a Pandas DataFrame and is indexed with the <code>Date_Time</code> column.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>file_path <span class="op">=</span> os.path.expanduser(<span class="st">"~/Documents"</span>) <span class="op">+</span> <span class="st">"</span><span class="ch">\\</span><span class="st">DS_advanced_website"</span> <span class="op">+</span> <span class="op">\</span></span>
@@ -201,6 +202,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="compare-models" class="level2">
 <h2 class="anchored" data-anchor-id="compare-models">Compare models</h2>
+<p>Next, we split the dataset into training and testing sets. The training set contains data up to a specific cutoff date (<code>2005-03-04</code>), and the testing set contains data after that date. The target variable (the one we aim to predict) is <code>CO_sensor</code>, which measures the concentration of carbon monoxide detected by the sensor. The feature matrix <code>X_mat</code> contains all the other predictor variables.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>y_vec <span class="op">=</span> air_quality_processed_df[<span class="st">"CO_sensor"</span>]</span>
@@ -217,7 +219,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <section id="naive-model" class="level3">
 <h3 class="anchored" data-anchor-id="naive-model">Naive model</h3>
-<p>++ explain that as naive model we often take the last known value (the previous hour value in our case)</p>
+<p>The naive model is often used as a simple benchmark in forecasting problems. It assumes that the best prediction for the next time step is simply the last observed value from the previous time step. In this case, we use the CO sensor data from the previous hour (<code>CO_sensor_lag_1</code>) as our naive forecast.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>naive_forecast <span class="op">=</span> air_quality_processed_df.loc[air_quality_processed_df.index <span class="op">&gt;</span> pd.to_datetime(<span class="st">"2005-03-04"</span>)][<span class="st">"CO_sensor_lag_1"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -225,6 +227,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="linear-regression" class="level3">
 <h3 class="anchored" data-anchor-id="linear-regression">Linear regression</h3>
+<p>The first machine learning model we use is Linear Regression. This model attempts to find a linear relationship between the predictor variables and the target variable. Once trained on the training dataset, we use it to make predictions on the test set.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.linear_model <span class="im">import</span> LinearRegression</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -644,6 +647,7 @@ div.sk-label-container:hover .sk-estimator-doc-link.fitted:hover,
 </section>
 <section id="random-forest" class="level3">
 <h3 class="anchored" data-anchor-id="random-forest">Random forest</h3>
+<p>The second model is a Random Forest Regressor, an ensemble learning method that builds multiple decision trees and averages their predictions to improve accuracy and avoid overfitting. In this case, we set the number of trees (<code>n_estimators</code>) to 50 and the maximum depth of each tree to 3.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.ensemble <span class="im">import</span> RandomForestRegressor</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -1062,18 +1066,22 @@ div.sk-label-container:hover .sk-estimator-doc-link.fitted:hover,
 </a></style><div id="sk-container-id-2" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>RandomForestRegressor(max_depth=3, n_estimators=50, random_state=0)</pre><b>In a Jupyter environment, please rerun this cell to show the HTML representation or trust the notebook. <br>On GitHub, the HTML representation is unable to render, please try loading this page with nbviewer.org.</b></div><div class="sk-container" hidden=""><div class="sk-item"><div class="sk-estimator fitted sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-2" type="checkbox" checked=""><label for="sk-estimator-id-2" class="sk-toggleable__label fitted sk-toggleable__label-arrow fitted">&nbsp;&nbsp;RandomForestRegressor<a class="sk-estimator-doc-link fitted" rel="noreferrer" target="_blank" href="https://scikit-learn.org/1.4/modules/generated/sklearn.ensemble.RandomForestRegressor.html">?<span>Documentation for RandomForestRegressor</span></a><span class="sk-estimator-doc-link fitted">i<span>Fitted</span></span></label><div class="sk-toggleable__content fitted"><pre>RandomForestRegressor(max_depth=3, n_estimators=50, random_state=0)</pre></div> </div></div></div></div>
 </div>
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>rand_forest_forecast <span class="op">=</span> lin_reg.predict(X_mat_test)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>rand_forest_forecast <span class="op">=</span> rand_forest.predict(X_mat_test)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="evaluate-models" class="level3">
 <h3 class="anchored" data-anchor-id="evaluate-models">Evaluate models</h3>
+<p>To evaluate the performance of the models, we calculate the Root Mean Squared Error (RMSE) for each forecast. RMSE is a widely used metric in forecasting problems because it provides a measure of how well a model’s predictions match the actual values, with lower values indicating better performance.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> root_mean_squared_error</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> mean_squared_error</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Naive forecat error is </span><span class="sc">{</span>root_mean_squared_error(naive_forecast, y_vec_test)<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> root_mean_squared_error(y_true, y_pred):</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.sqrt(mean_squared_error(y_true, y_pred))</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Naive forecast error is </span><span class="sc">{</span>root_mean_squared_error(naive_forecast, y_vec_test)<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Naive forecat error is 104.08288851736968</code></pre>
+<pre><code>Naive forecast error is 104.08288851736968</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Linear regression error is </span><span class="sc">{</span>root_mean_squared_error(lin_reg_forecast, y_vec_test)<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -1081,9 +1089,10 @@ div.sk-label-container:hover .sk-estimator-doc-link.fitted:hover,
 </div>
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Random forest error is </span><span class="sc">{</span>root_mean_squared_error(rand_forest_forecast, y_vec_test)<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Random forest error is 86.89761494134571</code></pre>
+<pre><code>Random forest error is 101.07981790929384</code></pre>
 </div>
 </div>
+<p>In summary, this demonstration illustrates how different models can be applied to a time series forecasting problem. By comparing a naive model, a linear regression model, and a random forest model, we can observe the strengths and weaknesses of each approach in terms of their forecasting accuracy, as measured by RMSE.</p>
 
 
 </section>

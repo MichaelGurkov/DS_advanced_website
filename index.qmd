@@ -2,10 +2,15 @@
 title: "DS_advanced_website"
 ---
 
-This is a Quarto website.
+## Topics
 
-To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
+- **[Introduction](topics/intro/eda.qmd)**
+  - **[Feature Engineering](topics/intro/feature_engineering.qmd)**
+  - **[Forecasting](topics/intro/forecaster_demo.qmd)**
 
-```{r}
-1 + 1
-```
+- **[Forecasting]()**
+  - **[Forecasting pipeline]()**
+  - **[Direct forecasting]()**
+  - **[Recursive forecasting]()**
+
+- **[Time Series Decomposition]()**

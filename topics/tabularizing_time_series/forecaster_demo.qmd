@@ -27,6 +27,10 @@ import os
 
 ```
 
+
+This is a demonstration of forecasting comparing two models. The data is the preprocessed data set after feature engineering
+
+
 ## Data loading
 
 ```{python import_data}
