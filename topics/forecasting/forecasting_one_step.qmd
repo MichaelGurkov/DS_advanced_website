@@ -1,0 +1,197 @@
+---
+title: "Forecasting one period (step) ahead"
+---
+
+```{r set_up_python, echo=FALSE}
+#|echo: FALSE
+
+if (Sys.getenv("USERPROFILE") == "C:\\Users\\internet"){
+  
+  python_path = paste0("C:\\Users\\internet\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+} else {
+  
+  python_path = paste0("C:\\Users\\Home\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+}
+
+reticulate::use_python(python_path)
+
+```
+
+```{python}
+
+import numpy as np
+
+import pandas as pd
+
+from feature_engine.creation import CyclicalFeatures
+
+from feature_engine.datetime import DatetimeFeatures
+
+from feature_engine.imputation import DropMissingData
+
+from feature_engine.selection import DropFeatures 
+
+from feature_engine.timeseries.forecasting import (LagFeatures, WindowFeatures)
+
+from sklearn.linear_model import Lasso
+
+from sklearn.metrics import root_mean_squared_error
+
+from sklearn.pipeline import Pipeline
+
+import matplotlib.pyplot as plt
+
+import os 
+
+```
+
+```{python import_data}
+
+file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_air_quality.csv"
+
+raw_df = pd.read_csv(file_path,
+                             index_col = "Date_Time")
+
+raw_df.index = pd.to_datetime(raw_df.index)
+
+```
+
+
+```{python extract_date_time_features}
+
+date_time_feat = DatetimeFeatures(
+  variables = "index",
+  features_to_extract = ["month","week","day_of_week",
+                         "day_of_month","hour","weekend"]
+                         )
+
+lag_feat = LagFeatures(
+  variables = ["CO_sensor","RH"],
+  freq = ["1h","24h"],
+  missing_values = "ignore"
+)
+
+
+window_feat = WindowFeatures(
+  variables = ["CO_sensor","RH"],
+  window = "3h",
+  freq = "1h",
+  missing_values = "ignore"
+)
+
+
+cyclical_feat = CyclicalFeatures(
+  variables = ["month","hour"],
+  drop_original = False
+)
+
+
+na_drop = DropMissingData()
+
+drop_feat = DropFeatures(features_to_drop = ["CO_sensor","RH"])
+
+
+trans_pipe = Pipeline(
+  [("date_time_features",date_time_feat),
+   ("lag_features",lag_feat),
+   ("window_features",window_feat),
+   ("periodic_features",cyclical_feat),
+   ("drop_missing_values",na_drop),
+   ("drop_original_features",drop_feat)
+  ]
+  
+)
+
+
+```
+
+
+```{python pipeline}
+
+trans_pipe = Pipeline(
+  [("date_time_features",date_time_feat),
+   ("lag_features",lag_feat),
+   ("window_features",window_feat),
+   ("periodic_features",cyclical_feat),
+   ("drop_missing_values",na_drop),
+   ("drop_original_features",drop_feat)
+  ]
+  
+)
+
+```
+
+## Train and test split
+
+++ we need to split the data to train and test set. Since our feature include lagged features that means that the test set needs to have sufficient info in order to calculae (engineer) the required features. In our case the longest lag is 24 hours so the test set must contain the first forecasting point plus the previous 24 hours.
+
+We'll allocate the last month to the test set so the split point will be set to "2005-03-04".
+
+```{python }
+
+split_point = pd.Timestamp("2005-03-04")
+
+X_train = raw_df.loc[raw_df.index < split_point]
+
+X_test = raw_df.loc[raw_df.index >= split_point - pd.offsets.Hour(24)]
+
+y_train = raw_df.loc[raw_df.index < split_point,"CO_sensor"]
+
+y_test = raw_df.loc[raw_df.index >= split_point - pd.offsets.Hour(24),"CO_sensor"]
+
+
+```
+
+### Preprocess data
+
+```{python preprocess_data}
+
+X_train_processed = trans_pipe.fit_transform(X_train.copy())
+
+X_test_processed = trans_pipe.fit_transform(X_test.copy())
+
+
+```
+
+++ explain that our preprocessing included dropping missing variables. That means that our training set and target vector are not aligned - there are time points that were removed from
+training set features but not from target variables so we need to alighn them using filter (.loc)
+
+```{python }
+
+print(y_train.shape)
+
+y_train = y_train.loc[X_train_processed.index]
+
+print(y_train.shape)
+
+y_test = y_test.loc[X_test_processed.index]
+
+```
+
+
+```{python }
+
+lasso_model = Lasso()
+
+lasso_model.fit(X_train_processed, y_train)
+
+```
+
+
+```{python predict}
+
+predictions_vec = lasso_model.predict(X_test_processed)
+
+```
+
+
+```{python evaluation}
+
+rmse = np.round(root_mean_squared_error(y_test, predictions_vec), 4)
+
+print(f"The root mean squared error on the test set is {rmse}")
+
+```
+

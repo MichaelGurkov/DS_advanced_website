@@ -40,8 +40,6 @@ import os
 
 ```
 
-
-
 ```{python import_data}
 
 file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_air_quality.csv"
@@ -53,15 +51,9 @@ raw_df.index = pd.to_datetime(raw_df.index)
 
 ```
 
-++ our goal is to perform the following steps (show as itemized list):
- - Date and time features
- - Lag features
- - Window features
- - Cyclical features
- - Removing missing values
+++ our goal is to perform the following steps (show as itemized list): - Date and time features - Lag features - Window features - Cyclical features - Removing missing values
 
-The feature engineering will be performed using the library feature_engine
-The purpose is to encapsulate all the operations in one pipeline
+The feature engineering will be performed using the library feature_engine The purpose is to encapsulate all the operations in one pipeline
 
 ```{python extract_date_time_features}
 
@@ -168,5 +160,3 @@ pipe_processed_df = trans_pipe.fit_transform(raw_df.copy())
 print(f"The processed df is equal to pipe_processed_df : {pipe_processed_df.equals(processed_df)}")
 
 ```
-
-
