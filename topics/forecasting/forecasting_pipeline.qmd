@@ -1,0 +1,202 @@
+---
+title: "Forecasting Pipeline"
+---
+
+```{r set_up_python, echo=FALSE}
+#|echo: FALSE
+
+if (Sys.getenv("USERPROFILE") == "C:\\Users\\internet"){
+  
+  python_path = paste0("C:\\Users\\internet\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+} else {
+  
+  python_path = paste0("C:\\Users\\Home\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+}
+
+reticulate::use_python(python_path)
+
+```
+
+```{python}
+
+import pandas as pd
+
+from feature_engine.creation import CyclicalFeatures
+
+from feature_engine.datetime import DatetimeFeatures
+
+from feature_engine.imputation import DropMissingData
+
+from feature_engine.selection import DropFeatures 
+
+from feature_engine.timeseries.forecasting import (LagFeatures, WindowFeatures)
+
+from sklearn.pipeline import Pipeline
+
+import matplotlib.pyplot as plt
+import os 
+
+```
+
+```{python import_data}
+
+file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_air_quality.csv"
+
+raw_df = pd.read_csv(file_path,
+                             index_col = "Date_Time")
+
+raw_df.index = pd.to_datetime(raw_df.index)
+
+```
+
+Our goal in this pipeline is to transform the data by applying a series of feature engineering techniques to prepare it for time series forecasting. We will perform the following tasks:
+
+1. **Date and time features**: Extract additional information from the datetime index (e.g., month, hour, day of the week).
+2. **Lag features**: Generate lagged versions of some variables to capture past values.
+3. **Window features**: Create rolling window statistics to capture trends and moving averages.
+4. **Cyclical features**: Represent cyclical components like time-based features (e.g., month and hour) as sinusoids to avoid jumps between consecutive values (e.g., December to January).
+5. **Removing missing values**: Drop rows with missing data.
+
+The feature engineering will be performed using the `feature_engine` library, which offers an easy-to-use interface to build these transformations. Our goal is to encapsulate all operations in one pipeline for easier reproducibility and maintainability.
+
+## Date time features
+
+```{python extract_date_time_features}
+
+date_time_feat = DatetimeFeatures(
+  variables = "index",
+  features_to_extract = ["month","week","day_of_week",
+                         "day_of_month","hour","weekend"]
+                         )
+
+processed_df = date_time_feat.fit_transform(raw_df.copy())
+
+
+processed_df.head()
+
+```
+
+In this step, we are extracting date and time features from the index, such as the month, day of the week, and hour of the day. This helps us leverage the temporal structure of the data in subsequent modeling steps. For example, the day of the week or the hour could influence air quality, so extracting such features allows us to include this information in the model.
+
+## Lag features
+
+```{python extract_lag_features}
+
+lag_feat = LagFeatures(
+  variables = ["CO_sensor","RH"],
+  freq = ["1h","24h"],
+  missing_values = "ignore"
+)
+
+processed_df = lag_feat.fit_transform(processed_df.copy())
+
+names_list = [name for name in processed_df.columns if "lag" in name]
+
+processed_df[names_list].head()
+
+```
+
+Here, we create **lag features** for the `CO_sensor` and `RH` (Relative Humidity) variables. Lagging is a powerful technique in time series forecasting as it allows us to capture information from previous time steps. In this case, we are creating two types of lags: one for 1 hour prior and another for 24 hours prior, which will help the model learn patterns that evolve over both short and longer time scales.
+
+## Window features
+
+```{python extract_window_features}
+
+window_feat = WindowFeatures(
+  variables = ["CO_sensor","RH"],
+  window = "3h",
+  freq = "1h",
+  missing_values = "ignore"
+)
+
+processed_df = window_feat.fit_transform(processed_df.copy())
+
+names_list = [name for name in processed_df.columns if "win" in name]
+
+processed_df[names_list].head()
+
+```
+
+In this step, we generate **window features**. These features capture rolling window statistics over a 3-hour window for the `CO_sensor` and `RH` variables, calculated at 1-hour intervals. This provides insight into the short-term trends or fluctuations in the data, as moving averages or other summary statistics over the window can help smooth out noisy data and emphasize underlying patterns.
+
+
+## Cyclical features
+
+```{python extract_cyclical_features}
+
+cyclical_feat = CyclicalFeatures(
+  variables = ["month","hour"],
+  drop_original = False
+)
+
+processed_df = cyclical_feat.fit_transform(processed_df.copy())
+
+names_list = [name for name in processed_df.columns if "month" or "hour" in name]
+
+processed_df[names_list].head()
+
+```
+
+Certain features, like **month** and **hour**, exhibit cyclical behavior (e.g., after December comes January, and after 23:00 comes 00:00). By converting these features into cyclical (sin and cos) representations, we ensure that the model properly understands these cyclic relationships. This prevents the model from interpreting consecutive values as linearly distant when they are, in fact, close (e.g., December and January).
+
+## Missing values and data leakage treatment
+
+```{python remove_missing_values}
+
+na_drop = DropMissingData()
+
+processed_df = na_drop.fit_transform(processed_df.copy())
+
+```
+
+After feature engineering, we may have introduced missing values, especially with techniques like lagging and windowing, which require previous data points. Therefore, we use `DropMissingData` to remove rows with missing values, ensuring a clean dataset for subsequent modeling.
+
+At this stage, we have created a data frame of explanatory variables (`X_mat`). It is crucial to avoid data leakage (or "look-ahead bias") in time series forecasting. This occurs when information from the future is unintentionally used to predict past events. To prevent this, we need to remove the original features (like `CO_sensor` and `RH`) after extracting all the required information through our feature engineering steps.
+
+```{python drop_original_features}
+
+drop_feat = DropFeatures(features_to_drop = ["CO_sensor","RH"])
+
+processed_df = drop_feat.fit_transform(processed_df.copy())
+
+processed_df.head()
+
+```
+
+Finally, we drop the original features (`CO_sensor` and `RH`) from the dataset. These original columns have already contributed their information through lagged, windowed, and cyclical features, so retaining them would lead to redundancy or potential data leakage.
+
+## Pipeline
+
+We now pack all the steps into a single pipeline. Pipelines allow us to apply a sequence of transformations to the data in a well-structured and reproducible way. This makes the data preparation process more efficient and less error-prone, especially when scaling up or iterating over different models or datasets.
+
+```{python pipeline}
+
+trans_pipe = Pipeline(
+  [("date_time_features",date_time_feat),
+   ("lag_features",lag_feat),
+   ("window_features",window_feat),
+   ("periodic_features",cyclical_feat),
+   ("drop_missing_values",na_drop),
+   ("drop_original_features",drop_feat)
+  ]
+  
+)
+
+pipe_processed_df = trans_pipe.fit_transform(raw_df.copy())
+
+print(f"The processed df is equal to pipe_processed_df : {pipe_processed_df.equals(processed_df)}")
+
+```
+
+Here, we've consolidated the entire feature engineering process into a single `Pipeline` object, which includes:
+
+- Date and time feature extraction
+- Lag features
+- Window features
+- Cyclical features
+- Dropping missing values
+- Removing original features
+
+This pipeline can be applied to any new dataset that follows a similar structure, ensuring that the feature engineering process is both scalable and consistent across different time periods or datasets. Additionally, this approach enhances model reproducibility and ease of deployment. After fitting and transforming the raw dataset through the pipeline, we confirm that the output matches the manually processed DataFrame.

@@ -1,5 +1,5 @@
 ---
-title: "Forecasting one period (step) ahead"
+title: "Forecasting multiple periods (steps) ahead"
 ---
 
 ```{r set_up_python, echo=FALSE}
@@ -37,6 +37,8 @@ from feature_engine.timeseries.forecasting import (LagFeatures, WindowFeatures)
 
 from sklearn.linear_model import Lasso
 
+from sklearn.multioutput import MultiOutputRegressor
+
 from sklearn.metrics import root_mean_squared_error
 
 from sklearn.pipeline import Pipeline
@@ -47,7 +49,7 @@ import os
 
 ```
 
-Here, we want to demonstrate how to forecast the next period (step) using a pipeline approach. The pipeline encapsulates all preprocessing operations such as feature engineering, imputation, and feature selection into a single streamlined process. This allows for consistency and efficiency when handling time series data. It is crucial to ensure that the explanatory features (the X matrix) and the target feature (the y vector) are properly aligned in time. Misalignment can lead to look-ahead bias, where future information is inappropriately used in the model training phase, resulting in overoptimistic performance estimates. Careful attention is also required to avoid data leakage, ensuring that the model does not have access to information from the future when forecasting.
+Here, we want to demonstrate how to forecast multiple period (step) using a pipeline approach. 
 
 ```{python import_data}
 
@@ -131,7 +133,7 @@ trans_pipe = Pipeline(
 
 ## Train and test split
 
-In time series forecasting, it’s important to account for the lagged features when splitting the data into train and test sets. The test set should contain enough prior data to compute the lagged and window-based features accurately. In this case, the longest lag is 24 hours, so we need to ensure that the test set includes the first forecasting point and at least 24 hours before it. We will split the data so that the last month is allocated to the test set. The chosen split point is "2005-03-04".
+In time series forecasting, it’s important to account for the lagged features when splitting the data into train and test sets. The test set should contain enough prior data to compute the lagged and window-based features accurately. In this case, the longest lag is 24 hours, so we need to ensure that the test set includes the first forecasting point and at least 24 hours before it. We will split the data so that the last month is allocated to the test set. The chosen split point is "2005-03-04". If we have enough data in order to be on the safe side we can completely eliminate any overlap between the train and the test set by limiting the train set to data before split point shifted by the offset range.
 
 ```{python }
 
@@ -148,6 +150,45 @@ y_test = raw_df.loc[raw_df.index >= split_point - pd.offsets.Hour(24),"CO_sensor
 
 ```
 
+
+Since we want to make predictions for multiple periods now instead of one series (vector) of target feature we will have multiple series (matrix of vectors), one for each forecast horizon. This will resolve some missing data in the target matrix because for each forecasting time point we need the next (future) 24 time points. For our last data point we don't have future values at all, for the one before the last we only have one and so on. We handle missing data by dropping rows with missing values. This can result in a misalignment between the processed features and the target variable, as some time points are removed from the target matrix but remain in the train matrix. To resolve this, we need to realign the target vector with the processed features by using `.loc` to filter both the on the updated index.
+
+
+```{python construct_Y_matrix}
+
+forecast_horizon = 24
+
+Y_train = pd.DataFrame(index = X_train.index)
+
+Y_test = pd.DataFrame(index = X_test.index)
+
+for temp_h in range(forecast_horizon):
+  Y_train[f"h_{temp_h}"] = X_train["CO_sensor"].shift(-temp_h, freq = "h")
+  Y_test[f"h_{temp_h}"] = X_test["CO_sensor"].shift(-temp_h, freq = "h")
+
+
+print(Y_train.iloc[0:5,0:5])
+
+
+
+```
+
+
+
+
+```{python align_X_Y_matrix}
+
+Y_train = Y_train.dropna().copy()
+
+Y_test = Y_test.dropna().copy()
+
+X_train = X_train.loc[Y_train.index]
+
+X_test = X_test.loc[Y_test.index]
+
+```
+
+
 ## Preprocess data
 
 ```{python preprocess_data}
@@ -156,19 +197,9 @@ X_train_processed = trans_pipe.fit_transform(X_train.copy())
 
 X_test_processed = trans_pipe.fit_transform(X_test.copy())
 
-```
+Y_train = Y_train.loc[X_train_processed.index]
 
-During preprocessing, we apply transformations that handle missing data by dropping rows with missing values. This can result in a misalignment between the processed features and the target variable, as some time points are removed from the training features but remain in the target vector. To resolve this, we need to realign the target vector with the processed features by using `.loc` to filter both the training and test target vectors based on the updated index of the processed feature sets.
-
-```{python }
-
-print(y_train.shape)
-
-y_train = y_train.loc[X_train_processed.index]
-
-print(y_train.shape)
-
-y_test = y_test.loc[X_test_processed.index]
+Y_test = Y_test.loc[X_test_processed.index]
 
 ```
 
@@ -179,9 +210,9 @@ After preprocessing and ensuring that the features and target are properly align
 
 ```{python }
 
-lasso_model = Lasso()
+lasso_model = MultiOutputRegressor(Lasso())
 
-lasso_model.fit(X_train_processed, y_train)
+lasso_model.fit(X_train_processed, Y_train)
 
 ```
 
@@ -189,7 +220,9 @@ After fitting the Lasso model, we can generate predictions for the test set. The
 
 ```{python predict}
 
-predictions_vec = lasso_model.predict(X_test_processed)
+predictions_mat = lasso_model.predict(X_test_processed)
+
+predictions_mat = pd.DataFrame(predictions_mat)
 
 ```
 
@@ -199,8 +232,25 @@ Finally, we evaluate the performance of our model using Root Mean Squared Error 
 
 ```{python evaluation}
 
-rmse = np.round(root_mean_squared_error(y_test, predictions_vec), 4)
+rmse_df = []
 
-print(f"The root mean squared error on the test set is {rmse}")
+for temp_hor in range(Y_test.shape[1]):
+  y_test = Y_test.iloc[:,temp_hor]
+  pred_vec = predictions_mat.iloc[:,temp_hor]
+  rmse = np.round(root_mean_squared_error(y_test, pred_vec), 4)
+  rmse_df.append(pd.DataFrame(columns = ["horizon","rmse"],
+                              data = [[temp_hor,rmse]]))
+
+rmse_df = pd.concat(rmse_df, axis = 0)
 
 ```
+
+
+```{python plot_rmse}
+
+rmse_df.plot(x = "horizon", y = "rmse")
+
+plt.show()
+
+```
+

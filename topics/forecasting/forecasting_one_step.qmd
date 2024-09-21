@@ -47,6 +47,8 @@ import os
 
 ```
 
+Here, we want to demonstrate how to forecast the next period (step) using a pipeline approach. The pipeline encapsulates all preprocessing operations such as feature engineering, imputation, and feature selection into a single streamlined process. This allows for consistency and efficiency when handling time series data. It is crucial to ensure that the explanatory features (the X matrix) and the target feature (the y vector) are properly aligned in time. Misalignment can lead to look-ahead bias, where future information is inappropriately used in the model training phase, resulting in overoptimistic performance estimates. Careful attention is also required to avoid data leakage, ensuring that the model does not have access to information from the future when forecasting.
+
 ```{python import_data}
 
 file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_air_quality.csv"
@@ -58,8 +60,11 @@ raw_df.index = pd.to_datetime(raw_df.index)
 
 ```
 
+## Pipeline
 
-```{python extract_date_time_features}
+The following steps involve extracting essential features from the datetime index, creating lag and window-based features, and transforming cyclical features like month and hour into sinusoidal form to capture seasonality. Additionally, any missing data is handled and specific features are dropped before fitting the model. The pipeline approach is utilized to bundle these operations into a single object for convenience and reusability.
+
+```{python define_preprocessing}
 
 date_time_feat = DatetimeFeatures(
   variables = "index",
@@ -107,6 +112,7 @@ trans_pipe = Pipeline(
 
 ```
 
+The pipeline defined here combines feature engineering tasks such as creating lag features, window statistics, and cyclical features, along with handling missing data and dropping unnecessary columns. This ensures that all transformations are consistently applied to both the training and testing sets, preventing leakage of future information.
 
 ```{python pipeline}
 
@@ -125,9 +131,7 @@ trans_pipe = Pipeline(
 
 ## Train and test split
 
-++ we need to split the data to train and test set. Since our feature include lagged features that means that the test set needs to have sufficient info in order to calculae (engineer) the required features. In our case the longest lag is 24 hours so the test set must contain the first forecasting point plus the previous 24 hours.
-
-We'll allocate the last month to the test set so the split point will be set to "2005-03-04".
+In time series forecasting, it’s important to account for the lagged features when splitting the data into train and test sets. The test set should contain enough prior data to compute the lagged and window-based features accurately. In this case, the longest lag is 24 hours, so we need to ensure that the test set includes the first forecasting point and at least 24 hours before it. We will split the data so that the last month is allocated to the test set. The chosen split point is "2005-03-04". If we have enough data in order to be on the safe side we can completely eliminate any overlap between the train and the test set by limiting the train set to data before split point shifted by the offset range.
 
 ```{python }
 
@@ -144,7 +148,7 @@ y_test = raw_df.loc[raw_df.index >= split_point - pd.offsets.Hour(24),"CO_sensor
 
 ```
 
-### Preprocess data
+## Preprocess data
 
 ```{python preprocess_data}
 
@@ -152,11 +156,9 @@ X_train_processed = trans_pipe.fit_transform(X_train.copy())
 
 X_test_processed = trans_pipe.fit_transform(X_test.copy())
 
-
 ```
 
-++ explain that our preprocessing included dropping missing variables. That means that our training set and target vector are not aligned - there are time points that were removed from
-training set features but not from target variables so we need to alighn them using filter (.loc)
+During preprocessing, we apply transformations that handle missing data by dropping rows with missing values. This can result in a misalignment between the processed features and the target variable, as some time points are removed from the training features but remain in the target vector. To resolve this, we need to realign the target vector with the processed features by using `.loc` to filter both the training and test target vectors based on the updated index of the processed feature sets.
 
 ```{python }
 
@@ -171,6 +173,10 @@ y_test = y_test.loc[X_test_processed.index]
 ```
 
 
+After preprocessing and ensuring that the features and target are properly aligned, we can train the forecasting model. Here, we use Lasso regression, a linear model that performs both variable selection and regularization to prevent overfitting. This model is suitable for time series forecasting with many features, especially when we want to avoid overly complex models that may not generalize well to unseen data.
+
+## Prediction
+
 ```{python }
 
 lasso_model = Lasso()
@@ -179,6 +185,7 @@ lasso_model.fit(X_train_processed, y_train)
 
 ```
 
+After fitting the Lasso model, we can generate predictions for the test set. The model uses the processed test features to forecast the target variable (CO sensor readings) for the next period.
 
 ```{python predict}
 
@@ -186,6 +193,9 @@ predictions_vec = lasso_model.predict(X_test_processed)
 
 ```
 
+## Evaluation
+
+Finally, we evaluate the performance of our model using Root Mean Squared Error (RMSE). RMSE is a widely used metric for regression tasks, as it gives us an indication of how well the predicted values match the actual values. Lower RMSE values indicate better performance.
 
 ```{python evaluation}
 
@@ -194,4 +204,3 @@ rmse = np.round(root_mean_squared_error(y_test, predictions_vec), 4)
 print(f"The root mean squared error on the test set is {rmse}")
 
 ```
-
