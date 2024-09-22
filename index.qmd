@@ -4,15 +4,13 @@ title: "DS_advanced_website"
 
 ## Topics
 
-- **[Introduction](topics/intro/eda.qmd)**
-  - **[Feature Engineering](topics/intro/feature_egineering.qmd)**
-  - **[Forecasting](topics/intro/forecaster_demo.qmd)**
-
-- **[Forecasting]()**
-  - **[Forecasting pipeline](topics/forecasting/forecasting_pipeline.qmd)**
-  - **[One step forecasting](topics/forecasting/forecasting_one_step.qmd)**
-  - [Multistep forecasting]()
-    - **[Direct forecasting](topics/forecasting/forecasting_multiple_steps.qmd)**
-    - **[Recursive forecasting](topics/forecasting/forecasting_multiple_steps_recursive.qmd)**
-
-- [Time Series Decomposition]()
+-   [**Introduction**](topics/intro/eda.qmd)
+    -   [**Feature Engineering**](topics/intro/feature_egineering.qmd)
+    -   [**Forecasting**](topics/intro/forecaster_demo.qmd)
+-   [**Forecasting**]()
+    -   [**Forecasting pipeline**](topics/forecasting/forecasting_pipeline.qmd)
+    -   [**One step forecasting**](topics/forecasting/forecasting_one_step.qmd)
+    -   [Multistep forecasting]()
+        -   [**Direct forecasting**](topics/forecasting/forecasting_multiple_steps.qmd)
+        -   [**Recursive forecasting**](topics/forecasting/forecasting_multiple_steps_recursive.qmd)
+-   [Time Series Decomposition]()
