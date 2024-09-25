@@ -2,7 +2,6 @@
 title: "Tabularizing time series data"
 ---
 
-
 ```{r set_up_python}
 #| echo: false
 
@@ -69,23 +68,15 @@ def plot_panel(long_df):
 
 ```
 
-
-
 # Intro to timeseries
 
- - Definition and example
- - Univariate and multivariate time series
- - Multiple time series
- - Regular vs irregular time series
- - Stationary vs non-stationary
+-   Definition and example
+-   Univariate and multivariate time series
+-   Multiple time series
+-   Regular vs irregular time series
+-   Stationary vs non-stationary
 
- 
- 
-Time series data format has (at least) two mandatory components:
-1. The data - a column of values
-2. The time index - an additional column or (more commonly) as index of the pandas Series or Data Frame
-
-
+Time series data format has (at least) two mandatory components: 1. The data - a column of values 2. The time index - an additional column or (more commonly) as index of the pandas Series or Data Frame
 
 ++ explain wide format (in this example a date column and 4 columns one for sales of each item: 'beverages', 'bakery', 'cleaning', 'dairy' )
 
@@ -111,9 +102,7 @@ plt.show()
 
 ```
 
-
 ++ explain long format (in this example a date column, an item category column and a sales values column)
-
 
 ```{python, convert_to_long}
 

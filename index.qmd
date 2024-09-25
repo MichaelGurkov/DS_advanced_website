@@ -11,6 +11,9 @@ title: "DS_advanced_website"
     -   [**Forecasting pipeline**](topics/forecasting/forecasting_pipeline.qmd)
     -   [**One step forecasting**](topics/forecasting/forecasting_one_step.qmd)
     -   [Multistep forecasting]()
-        -   [**Direct forecasting**](topics/forecasting/forecasting_multiple_steps.qmd)
-        -   [**Recursive forecasting**](topics/forecasting/forecasting_multiple_steps_recursive.qmd)
+        - [**Direct forecasting**](topics/forecasting/forecasting_multiple_steps.qmd)
+        - [**Recursive forecasting**](topics/forecasting/forecasting_multiple_steps_recursive.qmd)
+        - [**Forecasting comparison**](topics/forecasting/forecasting_comparison.qmd)
+
 -   [Time Series Decomposition]()
+

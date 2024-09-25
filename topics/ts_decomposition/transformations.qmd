@@ -1,0 +1,96 @@
+---
+title: "Transformations"
+---
+
+```{r set_up_python, echo=FALSE}
+#|echo: FALSE
+
+if (Sys.getenv("USERPROFILE") == "C:\\Users\\internet"){
+  
+  python_path = paste0("C:\\Users\\internet\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+} else {
+  
+  python_path = paste0("C:\\Users\\Home\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+}
+
+reticulate::use_python(python_path)
+
+```
+
+```{python}
+
+import numpy as np
+
+import pandas as pd
+
+import matplotlib.pyplot as plt
+
+import os 
+
+```
+
+
+```{python import_data}
+
+file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_air_passengers.csv"
+
+raw_df = pd.read_csv(file_path,index_col = "date")
+
+raw_df.index = pd.to_datetime(raw_df.index)
+
+```
+
+```{python}
+
+raw_df["passengers"].plot()
+
+plt.tight_layout()
+
+plt.show()
+
+```
+
+## Log transformation
+
+++ explain that sometimes we want to transform a features, for example in order to stabilize the variance
+
+```{python plot_log}
+
+raw_df["passengers_log"] = np.log(raw_df["passengers"])
+
+plt.clf()
+
+raw_df["passengers_log"].plot()
+
+plt.tight_layout()
+
+plt.show()
+
+
+
+```
+
+
+## Box Cox transformation
+
+```{python}
+
+from sktime.transformations.series.boxcox import BoxCoxTransformer
+
+bc_trans = BoxCoxTransformer()
+
+raw_df["passengers_box_cox"] = bc_trans.fit_transform(raw_df["passengers"])
+
+plt.clf()
+
+raw_df["passengers_box_cox"].plot()
+
+plt.tight_layout()
+
+plt.show()
+
+
+```
+
