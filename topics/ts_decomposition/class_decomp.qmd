@@ -1,0 +1,148 @@
+---
+title: "Classical Decomposition"
+---
+
+```{r set_up_python, echo=FALSE}
+#|echo: FALSE
+
+if (Sys.getenv("USERPROFILE") == "C:\\Users\\internet"){
+  
+  python_path = paste0("C:\\Users\\internet\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+} else {
+  
+  python_path = paste0("C:\\Users\\Home\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+}
+
+reticulate::use_python(python_path)
+
+```
+
+```{python}
+
+import numpy as np
+
+import pandas as pd
+
+import matplotlib.pyplot as plt
+
+import os 
+
+```
+
+
+```{python import_data}
+
+file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_retail_sales.csv"
+
+raw_df = pd.read_csv(file_path,index_col = "date")
+
+raw_df.index = pd.to_datetime(raw_df.index)
+
+```
+
+## Trend
+
+++ we need to decide on the window size of the moving average. It's a good rule of thumb to set the window size to the frequency of the seasonality (i.e 12 in case of monthly data with yearly seasonality) if the seasonality is known. This allows as to "isolate" the entire seasonality cycle in one window and thus to smooth over the seasonality. If the seasonality is not know we need to visually evaluate the resulting trend. Setting the window too narrow will result in excess fluctuations of the trend line - under smoothing. Setting the window too wide will result in 
+a flat line that will not capture the changes in the trend
+
+```{python trend}
+
+trend_df = raw_df.copy()
+
+even_win_len = 60
+
+trend_df["over_smoothing"] = trend_df["sales"].rolling(window = even_win_len).mean()
+
+trend_df["over_smoothing"] = trend_df["over_smoothing"].rolling(window = 2, center = True).mean()
+
+trend_df["over_smoothing"] = trend_df["over_smoothing"].shift(- even_win_len // 2)
+
+trend_df["under_smoothing"] = trend_df["sales"].rolling(window = 3, center = True).mean()
+
+
+
+```
+
+```{python plot_over_under_smoothing}
+
+plt.clf()
+
+trend_df["sales"].plot(color = "grey", alpha = 0.5)
+
+trend_df["under_smoothing"].plot(color = "steelblue")
+
+trend_df["over_smoothing"].plot(color = "orange")
+
+plt.legend()
+
+plt.show()
+
+
+```
+
+### Cross validation for trend estimation
+
+
+## Seasonality
+
+++ explain that in order to isolate seasonality we first need to detrend the data. So we indentify the trend, than detrend (exclude the trend) by substracting (if additive) of dividing (if multiplicative) and proceed to isolate the seasonality
+
+```{python seasonality}
+
+season_df = raw_df.copy()
+
+season_df["trend"] = season_df["sales"].rolling(window = 12).mean()
+
+season_df["trend"] = season_df["trend"].rolling(window = 2, center = True).mean()
+
+season_df["trend"] = season_df["trend"].shift(- 12 // 2)
+
+season_df["detrended_data"] = season_df["sales"] - season_df["trend"]
+
+
+season_df["month"] = season_df.index.month
+
+seasonality = season_df.groupby("month").mean()["detrended_data"].reset_index()
+
+seasonality.columns = ["month","seasonality"]
+
+season_df = pd.merge(season_df.copy(),seasonality, on = "month", how = "left")
+
+season_df["remainder"] = season_df["detrended_data"] - season_df["seasonality"]
+
+```
+
+
+```{python plot_decomposition}
+
+fig, ax = 
+
+
+
+```
+
+
+
+```{python }
+
+
+plt.clf()
+
+fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(8, 12))
+
+
+season_df["trend"].plot(ax = axes[0], title = "trend")
+season_df["seasonality"].plot(ax = axes[1], title = "seasonality")
+season_df["remainder"].plot(ax = axes[2], title = "remainder")
+
+# Adjust layout to avoid overlap
+plt.tight_layout(pad = 3.0)
+
+# Show the plot
+plt.show()
+
+
+```
+

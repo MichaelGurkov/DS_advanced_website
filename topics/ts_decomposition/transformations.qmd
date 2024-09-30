@@ -94,3 +94,70 @@ plt.show()
 
 ```
 
+
+
+## Moving averages
+
+++ explain the odd moving average window is symmetric (there are equal amount of point on each side of the center). The even size moving average does not have a natural center but we can change the weights to achieve a symmetric window. The weights will not be the same, on the edges the weights will be smaller. Actually in order to make an even size window symmetric we need to apply additional moving average of window 2 so the edge's weights will be half the other (inside) weights.
+
+
+```{python import_ma_data}
+
+ma_file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_retail_sales.csv"
+
+ma_raw_df = pd.read_csv(ma_file_path,index_col = "date")
+
+ma_raw_df.index = pd.to_datetime(ma_raw_df.index)
+
+del ma_file_path
+
+```
+
+
+
+```{python ma_3}
+
+ma_df = ma_raw_df.copy()
+
+ma_df["ma_3"] = ma_df["sales"].rolling(window = 3, center = True).mean()
+
+```
+
+```{python plot_ma_3}
+
+plt.clf()
+
+ma_df["ma_3"].plot(color = "steelblue")
+
+ma_df["sales"].plot(color = "grey", alpha = 0.7)
+
+plt.show()
+
+```
+
+
+```{python ma_2_12}
+
+even_window_size = 12
+
+ma_df["ma_2_12"] = ma_df["sales"].rolling(window = even_window_size).mean()
+
+ma_df["ma_2_12"] = ma_df["ma_2_12"].rolling(window = 2, center = True).mean()
+
+ma_df["ma_2_12"] = ma_df["ma_2_12"].shift(- even_window_size // 2)
+
+```
+
+
+
+```{python plot_ma_2_12}
+
+plt.clf()
+
+ma_df["ma_2_12"].plot(color = "steelblue")
+
+ma_df["sales"].plot(color = "grey", alpha = 0.7)
+
+plt.show()
+
+```
