@@ -31,7 +31,6 @@ import os
 
 ```
 
-
 ```{python import_data}
 
 file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_air_passengers.csv"
@@ -72,20 +71,56 @@ plt.show()
 
 ```
 
-
 ## Box Cox transformation
 
 ```{python}
 
 from sktime.transformations.series.boxcox import BoxCoxTransformer
 
-bc_trans = BoxCoxTransformer()
-
-raw_df["passengers_box_cox"] = bc_trans.fit_transform(raw_df["passengers"])
+lambdas_vec = [-1,-0.5,0,0.5,1,2]
 
 plt.clf()
 
-raw_df["passengers_box_cox"].plot()
+fig,ax = plt.subplots(ncols = 2, nrows = 3,figsize=[25, 15], sharex = True)
+
+ax = ax.flatten()
+
+for ix, temp_lambda in enumerate(lambdas_vec):
+  print(temp_lambda)
+  
+  bc_trans = BoxCoxTransformer(lambda_fixed = temp_lambda)
+  
+  raw_df["temp_box_cox"] = bc_trans.fit_transform(raw_df["passengers"])
+  
+  raw_df.plot(y = "temp_box_cox",ax  = ax[ix], label = f"lambda = {temp_lambda}")
+  
+  ax[ix].legend()
+  
+  ax[ix].set_xlabel("")
+  
+
+plt.tight_layout()
+  
+plt.show()
+
+
+```
+
+### The Guerrero methond
+++ explain briefly the Guerrero method. Emphasize that it's advantage is the explicit focus on stabilization of variance.
+
+
+```{python guerrero_method}
+
+from sktime.transformations.series.boxcox import BoxCoxTransformer
+
+bc_guerrero = BoxCoxTransformer(method = "guerrero", sp = 12)
+
+raw_df["passengers_bc_guerrero"] = bc_guerrero.fit_transform(raw_df["passengers"])
+
+plt.clf()
+
+raw_df["passengers_bc_guerrero"].plot()
 
 plt.tight_layout()
 
@@ -93,4 +128,3 @@ plt.show()
 
 
 ```
-
