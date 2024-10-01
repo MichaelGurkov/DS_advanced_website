@@ -2,12 +2,12 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.4.555">
+<meta name="generator" content="quarto-1.5.57">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>DS_advanced_website - Forecasting demonstration</title>
+<title>LOWESS Decomposition – DS_advanced_website</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -33,7 +33,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -117,7 +117,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
   <span class="navbar-toggler-icon"></span>
 </button>
           <div class="collapse navbar-collapse" id="navbarCollapse">
@@ -132,7 +132,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </li>  
 </ul>
           </div> <!-- /navcollapse -->
-          <div class="quarto-navbar-tools">
+            <div class="quarto-navbar-tools">
 </div>
       </div> <!-- /container-fluid -->
     </nav>
@@ -146,9 +146,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#data-loading" id="toc-data-loading" class="nav-link active" data-scroll-target="#data-loading">Data loading</a></li>
-  <li><a href="#missing-values-handling" id="toc-missing-values-handling" class="nav-link" data-scroll-target="#missing-values-handling">Missing values handling</a></li>
-  <li><a href="#seasonality" id="toc-seasonality" class="nav-link" data-scroll-target="#seasonality">Seasonality</a></li>
+  <li><a href="#lowess-parametres" id="toc-lowess-parametres" class="nav-link active" data-scroll-target="#lowess-parametres">LOWESS parametres</a>
+  <ul class="collapse">
+  <li><a href="#cross-validation-to-select-appropriate-fraction-parameter" id="toc-cross-validation-to-select-appropriate-fraction-parameter" class="nav-link" data-scroll-target="#cross-validation-to-select-appropriate-fraction-parameter">Cross validation to select appropriate fraction parameter</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -157,7 +158,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Forecasting demonstration</h1>
+<h1 class="title">LOWESS Decomposition</h1>
 </div>
 
 
@@ -176,117 +177,95 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os </span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> statsmodels.nonparametric.smoothers_lowess <span class="im">import</span> lowess</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> root_mean_squared_error</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> KFold</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<section id="data-loading" class="level2">
-<h2 class="anchored" data-anchor-id="data-loading">Data loading</h2>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>file_path <span class="op">=</span> os.path.expanduser(<span class="st">"~/Documents"</span>) <span class="op">+</span> <span class="st">"</span><span class="ch">\\</span><span class="st">DS_advanced_website</span><span class="ch">\\</span><span class="st">data</span><span class="ch">\\</span><span class="st">example_air_quality.csv"</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>file_path <span class="op">=</span> os.path.expanduser(<span class="st">"~/Documents"</span>) <span class="op">+</span> <span class="st">"</span><span class="ch">\\</span><span class="st">DS_advanced_website</span><span class="ch">\\</span><span class="st">data</span><span class="ch">\\</span><span class="st">example_retail_sales.csv"</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>air_quality_df <span class="op">=</span> pd.read_csv(file_path,</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>                             index_col <span class="op">=</span> <span class="st">"Date_Time"</span>)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>air_quality_df.index <span class="op">=</span> pd.to_datetime(air_quality_df.index)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>raw_df <span class="op">=</span> pd.read_csv(file_path,index_col <span class="op">=</span> <span class="st">"date"</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>raw_df.index <span class="op">=</span> pd.to_datetime(raw_df.index)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>The dataset <code>air_quality_df</code> is loaded from a CSV file and indexed by a column named <code>Date_Time</code>, which represents timestamps of the air quality readings. This timestamp index is essential for time series analysis, allowing us to analyze the data in chronological order. The dataset includes sensor readings such as <code>CO_sensor</code>, which captures the concentration of carbon monoxide (CO) in the air, and <code>RH</code>, which records relative humidity (RH) levels. These two variables provide environmental and pollutant measurements that will be key in our analysis.</p>
+<section id="lowess-parametres" class="level2">
+<h2 class="anchored" data-anchor-id="lowess-parametres">LOWESS parametres</h2>
+<p>++ explain the parameters in python implementations: frac - fraction of data for the window size (determines the smoothness) it - number of iterations for robust regression. Also explain the endog and exog parameters</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> temp_col <span class="kw">in</span> air_quality_df.columns.values:</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  air_quality_df[temp_col].plot(figsize <span class="op">=</span> (<span class="dv">20</span>,<span class="dv">6</span>))</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  plt.title(temp_col, fontsize<span class="op">=</span><span class="dv">20</span>)  <span class="co"># Increase the title font size</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  plt.tick_params(axis<span class="op">=</span><span class="st">'both'</span>, which<span class="op">=</span><span class="st">'major'</span>, labelsize<span class="op">=</span><span class="dv">16</span>)</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  plt.xlabel(<span class="st">''</span>)  <span class="co"># Disable x-axis label</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  plt.ylabel(<span class="st">''</span>)  <span class="co"># Disable y-axis label</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="forecasting_demo_updated_files/figure-html/plot_data-1.png" class="img-fluid figure-img" width="1920"></p>
-</figure>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> raw_df[<span class="st">"sales"</span>]</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.arange(<span class="dv">0</span>, <span class="bu">len</span>(y))</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>ts_decomp <span class="op">=</span> lowess(endog <span class="op">=</span> y, exog <span class="op">=</span> x, frac <span class="op">=</span> <span class="fl">0.1</span>, it <span class="op">=</span> <span class="dv">3</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"trend_lowess"</span>] <span class="op">=</span> ts_decomp[:,<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="forecasting_demo_updated_files/figure-html/plot_data-2.png" class="img-fluid figure-img" width="1920"></p>
-</figure>
-</div>
-</div>
-</div>
-<p>Here, we plot each of the columns in the dataset (<code>CO_sensor</code> and <code>RH</code>) to visually explore the time series data. These plots provide a general understanding of how pollutant levels (CO_sensor) and humidity (RH) fluctuate over time. Larger trends, spikes, or patterns such as seasonality may already be visible, and such visualizations are a useful first step before deeper analysis.</p>
-</section>
-<section id="missing-values-handling" class="level2">
-<h2 class="anchored" data-anchor-id="missing-values-handling">Missing values handling</h2>
-<p>To handle missing data in a time series, we first ensure that our data is uniformly spaced by converting the <code>Date_Time</code> index to an hourly frequency using the <code>.asfreq("1h")</code> method. This step introduces explicit gaps for any missing data points, making them easier to detect. This is important in time series analysis because irregular time steps can mislead algorithms, and most forecasting models require data to be at regular intervals.</p>
+<section id="cross-validation-to-select-appropriate-fraction-parameter" class="level3">
+<h3 class="anchored" data-anchor-id="cross-validation-to-select-appropriate-fraction-parameter">Cross validation to select appropriate fraction parameter</h3>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>impute_df <span class="op">=</span> air_quality_df.asfreq(<span class="st">"1h"</span>).copy()</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> temp_col <span class="kw">in</span> impute_df.columns:</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  impute_df[temp_col <span class="op">+</span> <span class="st">"_imputed"</span>] <span class="op">=</span> impute_df[temp_col]</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  impute_df[temp_col <span class="op">+</span> <span class="st">"_imputed"</span>] <span class="op">=</span> impute_df[temp_col <span class="op">+</span> <span class="st">"_imputed"</span>].ffill()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>In this block, we handle missing values by forward-filling the gaps (<code>.ffill()</code>), which propagates the last observed value forward until a new valid observation is encountered. This is a common imputation technique for time series data, especially in scenarios where missing values are sparse or values don’t drastically change within short time frames.</p>
-<p>We create new columns (e.g., <code>CO_sensor_imputed</code>, <code>RH_imputed</code>) that store the imputed data, while retaining the original columns for comparison and visualization of the missing values.</p>
-<p>Next, we will overlay the imputed values onto the original time series to visually highlight where data was missing and how it was filled.</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> temp_col <span class="kw">in</span> [<span class="st">"CO_sensor"</span>,<span class="st">"RH"</span>]:</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  ax <span class="op">=</span> impute_df[temp_col].plot(figsize <span class="op">=</span> (<span class="dv">20</span>,<span class="dv">6</span>))</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  impute_df[impute_df[temp_col].isnull()][temp_col <span class="op">+</span> <span class="st">"_imputed"</span>].plot(</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    ax <span class="op">=</span> ax,legend <span class="op">=</span> <span class="va">False</span>,marker <span class="op">=</span> <span class="st">"."</span>, color <span class="op">=</span> <span class="st">"red"</span>, linestyle<span class="op">=</span><span class="st">'None'</span>)</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  plt.title(temp_col, fontsize<span class="op">=</span><span class="dv">20</span>)  <span class="co"># Increase the title font size</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  plt.tick_params(axis<span class="op">=</span><span class="st">'both'</span>, which<span class="op">=</span><span class="st">'major'</span>, labelsize<span class="op">=</span><span class="dv">16</span>)</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  plt.xlabel(<span class="st">''</span>)  <span class="co"># Disable x-axis label</span></span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  plt.ylabel(<span class="st">''</span>)  <span class="co"># Disable y-axis label</span></span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="forecasting_demo_updated_files/figure-html/plot_missing_and_imputed_values-5.png" class="img-fluid figure-img" width="1920"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="forecasting_demo_updated_files/figure-html/plot_missing_and_imputed_values-6.png" class="img-fluid figure-img" width="1920"></p>
-</figure>
-</div>
-</div>
-</div>
-<p>The purpose of this code block is to visualize the missing data points and the corresponding imputed values. The original data is plotted as a line, and any missing data points that were imputed are marked with red dots. This method of visual comparison allows us to easily inspect where the forward fill occurred and ensures that the imputation technique was applied correctly without distorting the overall time series pattern.</p>
-</section>
-<section id="seasonality" class="level2">
-<h2 class="anchored" data-anchor-id="seasonality">Seasonality</h2>
-<p>Seasonality refers to recurring patterns or cycles in data that occur at regular intervals, such as daily or yearly trends. By grouping the data by time of day (i.e., the hour) and averaging across all observations for that time, we can observe how pollutant concentrations (like CO_sensor) vary over the course of a typical day. This allows us to detect intra-day seasonality, which is particularly relevant for environmental and pollution data that may exhibit daily cycles due to human activity or environmental factors.</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>hours_con <span class="op">=</span> impute_df.groupby(impute_df.index.time)[</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"CO_sensor"</span>].mean().reset_index()</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>hours_con.plot(x <span class="op">=</span> <span class="st">'index'</span>, y <span class="op">=</span> <span class="st">'CO_sensor'</span>, legend <span class="op">=</span> <span class="va">False</span>)</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"Pollutant concentration over day time"</span>)</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">""</span>)</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">""</span>)</span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="forecasting_demo_updated_files/figure-html/plot_seasonality-9.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_rmse_for_df(X,y, frac_param):</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  KFold_obj <span class="op">=</span> KFold(n_splits <span class="op">=</span> <span class="dv">5</span>, shuffle <span class="op">=</span> <span class="va">True</span>, random_state <span class="op">=</span> <span class="dv">0</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  rmse_list <span class="op">=</span> []</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> train_index, test_index <span class="kw">in</span> KFold_obj.split(X,y):</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    X_train <span class="op">=</span> X[train_index]</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    y_train <span class="op">=</span> y.iloc[train_index]</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    X_test <span class="op">=</span> X[test_index]</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    y_test <span class="op">=</span> y.iloc[test_index]</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    y_pred <span class="op">=</span> lowess(endog <span class="op">=</span> y_train, exog <span class="op">=</span> X_train, frac <span class="op">=</span> frac_param, xvals <span class="op">=</span> X_test)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    rmse <span class="op">=</span> root_mean_squared_error(y_pred, y_test)</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    rmse_list.append(rmse)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> rmse_list</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> []</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> temp_frac <span class="kw">in</span> [<span class="fl">0.05</span>,<span class="fl">0.1</span>,<span class="fl">0.5</span>,<span class="dv">1</span>]:</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  rmse_list <span class="op">=</span> get_rmse_for_df(X <span class="op">=</span> x,y <span class="op">=</span> y,frac_param <span class="op">=</span> temp_frac)</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  rmse_df <span class="op">=</span> pd.DataFrame(data <span class="op">=</span> rmse_list, columns <span class="op">=</span> [<span class="st">"rmse"</span>])</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>  rmse_df[<span class="st">"frac"</span>] <span class="op">=</span> temp_frac</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>  results.append(rmse_df)</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>pd.concat(results, axis <span class="op">=</span> <span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>           rmse  frac
+0  22981.706955  0.05
+1  22624.297346  0.05
+2  20582.387871  0.05
+3  28572.985707  0.05
+4  21376.838789  0.05
+0  23018.284152  0.10
+1  21215.656841  0.10
+2  20279.923647  0.10
+3  25214.068880  0.10
+4  20387.775112  0.10
+0  26184.512853  0.50
+1  22354.596572  0.50
+2  23964.726098  0.50
+3  25516.588727  0.50
+4  20683.629095  0.50
+0  26343.368462  1.00
+1  23258.024086  1.00
+2  24924.462787  1.00
+3  26254.158157  1.00
+4  20870.150531  1.00</code></pre>
 </div>
 </div>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->
@@ -325,18 +304,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
     return false;
   }
-  const clipboard = new window.ClipboardJS('.code-copy-button', {
-    text: function(trigger) {
-      const codeEl = trigger.previousElementSibling.cloneNode(true);
-      for (const childEl of codeEl.children) {
-        if (isCodeAnnotation(childEl)) {
-          childEl.remove();
-        }
-      }
-      return codeEl.innerText;
-    }
-  });
-  clipboard.on('success', function(e) {
+  const onCopySuccess = function(e) {
     // button target
     const button = e.trigger;
     // don't keep focus
@@ -368,7 +336,29 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }, 1000);
     // clear code selection
     e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
   });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
     var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
     var mailtoRegex = new RegExp(/^mailto:/);
       var filterRegex = new RegExp('/' + window.location.host + '/');
@@ -376,7 +366,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
         return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
     }
     // Inspect non-navigation links and adorn them if external
- 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
     for (var i=0; i<links.length; i++) {
       const link = links[i];
       if (!isInternal(link.href)) {

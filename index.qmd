@@ -15,5 +15,7 @@ title: "DS_advanced_website"
         - [**Recursive forecasting**](topics/forecasting/forecasting_multiple_steps_recursive.qmd)
         - [**Forecasting comparison**](topics/forecasting/forecasting_comparison.qmd)
 
--   [Time Series Decomposition]()
-
+-  [**Time Series Decomposition**]()
+   -  [**Transformations**](topics/ts_decomposition/transformations.qmd)
+   -  [**Classical decomposition**](topics/ts_decomposition/class_decomp.qmd)
+   -  [**LOWESS decomposition**](topics/ts_decomposition/lowess_decomp.qmd)

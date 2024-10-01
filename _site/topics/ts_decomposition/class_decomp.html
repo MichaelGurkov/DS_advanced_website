@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Exploratory Data Analysis - EDA – DS_advanced_website</title>
+<title>Classical Decomposition – DS_advanced_website</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -146,11 +146,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#introduction-to-exploratory-data-analysis-eda" id="toc-introduction-to-exploratory-data-analysis-eda" class="nav-link active" data-scroll-target="#introduction-to-exploratory-data-analysis-eda">Introduction to Exploratory Data Analysis (EDA)</a></li>
-  <li><a href="#data-loading" id="toc-data-loading" class="nav-link" data-scroll-target="#data-loading">Data Loading</a></li>
-  <li><a href="#data-visualization" id="toc-data-visualization" class="nav-link" data-scroll-target="#data-visualization">Data Visualization</a></li>
-  <li><a href="#handling-missing-values" id="toc-handling-missing-values" class="nav-link" data-scroll-target="#handling-missing-values">Handling Missing Values</a></li>
-  <li><a href="#visualizing-imputed-values" id="toc-visualizing-imputed-values" class="nav-link" data-scroll-target="#visualizing-imputed-values">Visualizing Imputed Values</a></li>
+  <li><a href="#trend" id="toc-trend" class="nav-link active" data-scroll-target="#trend">Trend</a>
+  <ul class="collapse">
+  <li><a href="#cross-validation-for-trend-estimation" id="toc-cross-validation-for-trend-estimation" class="nav-link" data-scroll-target="#cross-validation-for-trend-estimation">Cross validation for trend estimation</a></li>
+  </ul></li>
   <li><a href="#seasonality" id="toc-seasonality" class="nav-link" data-scroll-target="#seasonality">Seasonality</a></li>
   </ul>
 </nav>
@@ -160,7 +159,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Exploratory Data Analysis - EDA</h1>
+<h1 class="title">Classical Decomposition</h1>
 </div>
 
 
@@ -179,125 +178,119 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<section id="introduction-to-exploratory-data-analysis-eda" class="level2">
-<h2 class="anchored" data-anchor-id="introduction-to-exploratory-data-analysis-eda">Introduction to Exploratory Data Analysis (EDA)</h2>
-<p>Exploratory Data Analysis (EDA) is a crucial step in any data science or time series analysis process. It involves visually and statistically summarizing the key characteristics of a dataset to gain insights into its structure, underlying patterns, and potential issues such as missing data or outliers. In this short tutorial, we will focus on performing EDA on time series data. Specifically, we will identify and handle missing values and explore seasonality—one of the most common characteristics in time series data. Seasonality refers to patterns that repeat at regular intervals, such as daily, weekly, or yearly trends, and detecting it is essential for accurate forecasting.</p>
-</section>
-<section id="data-loading" class="level2">
-<h2 class="anchored" data-anchor-id="data-loading">Data Loading</h2>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>file_path <span class="op">=</span> os.path.expanduser(<span class="st">"~/Documents"</span>) <span class="op">+</span> <span class="st">"</span><span class="ch">\\</span><span class="st">DS_advanced_website</span><span class="ch">\\</span><span class="st">data</span><span class="ch">\\</span><span class="st">example_air_quality.csv"</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>file_path <span class="op">=</span> os.path.expanduser(<span class="st">"~/Documents"</span>) <span class="op">+</span> <span class="st">"</span><span class="ch">\\</span><span class="st">DS_advanced_website</span><span class="ch">\\</span><span class="st">data</span><span class="ch">\\</span><span class="st">example_retail_sales.csv"</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>air_quality_df <span class="op">=</span> pd.read_csv(file_path,</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>                             index_col <span class="op">=</span> <span class="st">"Date_Time"</span>)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>air_quality_df.index <span class="op">=</span> pd.to_datetime(air_quality_df.index)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>raw_df <span class="op">=</span> pd.read_csv(file_path,index_col <span class="op">=</span> <span class="st">"date"</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>raw_df.index <span class="op">=</span> pd.to_datetime(raw_df.index)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>The dataset <code>air_quality_df</code> is loaded from a CSV file and indexed by a column named <code>Date_Time</code>, which represents timestamps of the air quality readings. This timestamp index is essential for time series analysis, allowing us to analyze the data in chronological order. The dataset includes sensor readings such as <code>CO_sensor</code>, which captures the concentration of carbon monoxide (CO) in the air, and <code>RH</code>, which records relative humidity (RH) levels. These two variables provide environmental and pollutant measurements that will be key in our analysis.</p>
-</section>
-<section id="data-visualization" class="level2">
-<h2 class="anchored" data-anchor-id="data-visualization">Data Visualization</h2>
+<section id="trend" class="level2">
+<h2 class="anchored" data-anchor-id="trend">Trend</h2>
+<p>++ we need to decide on the window size of the moving average. It’s a good rule of thumb to set the window size to the frequency of the seasonality (i.e 12 in case of monthly data with yearly seasonality) if the seasonality is known. This allows as to “isolate” the entire seasonality cycle in one window and thus to smooth over the seasonality. If the seasonality is not know we need to visually evaluate the resulting trend. Setting the window too narrow will result in excess fluctuations of the trend line - under smoothing. Setting the window too wide will result in a flat line that will not capture the changes in the trend</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> temp_col <span class="kw">in</span> air_quality_df.columns.values:</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  air_quality_df[temp_col].plot(figsize <span class="op">=</span> (<span class="dv">20</span>,<span class="dv">6</span>))</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  plt.title(temp_col, fontsize<span class="op">=</span><span class="dv">20</span>)  <span class="co"># Increase the title font size</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  plt.tick_params(axis<span class="op">=</span><span class="st">'both'</span>, which<span class="op">=</span><span class="st">'major'</span>, labelsize<span class="op">=</span><span class="dv">16</span>)</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  plt.xlabel(<span class="st">''</span>)  <span class="co"># Disable x-axis label</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  plt.ylabel(<span class="st">''</span>)  <span class="co"># Disable y-axis label</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="eda_files/figure-html/plot_data-1.png" class="img-fluid figure-img" width="1920"></p>
-</figure>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>trend_df <span class="op">=</span> raw_df.copy()</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>even_win_len <span class="op">=</span> <span class="dv">84</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>trend_df[<span class="st">"over_smoothing"</span>] <span class="op">=</span> trend_df[<span class="st">"sales"</span>].rolling(window <span class="op">=</span> even_win_len).mean()</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>trend_df[<span class="st">"over_smoothing"</span>] <span class="op">=</span> trend_df[<span class="st">"over_smoothing"</span>].rolling(window <span class="op">=</span> <span class="dv">2</span>, center <span class="op">=</span> <span class="va">True</span>).mean()</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>trend_df[<span class="st">"over_smoothing"</span>] <span class="op">=</span> trend_df[<span class="st">"over_smoothing"</span>].shift(<span class="op">-</span> even_win_len <span class="op">//</span> <span class="dv">2</span>)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>trend_df[<span class="st">"under_smoothing"</span>] <span class="op">=</span> trend_df[<span class="st">"sales"</span>].rolling(window <span class="op">=</span> <span class="dv">3</span>, center <span class="op">=</span> <span class="va">True</span>).mean()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="eda_files/figure-html/plot_data-2.png" class="img-fluid figure-img" width="1920"></p>
-</figure>
-</div>
-</div>
-</div>
-<p>Here, we plot each of the columns in the dataset (<code>CO_sensor</code> and <code>RH</code>) to visually explore the time series data. These plots provide a general understanding of how pollutant levels (CO_sensor) and humidity (RH) fluctuate over time. Larger trends, spikes, or patterns such as seasonality may already be visible, and such visualizations are a useful first step before deeper analysis.</p>
-</section>
-<section id="handling-missing-values" class="level2">
-<h2 class="anchored" data-anchor-id="handling-missing-values">Handling Missing Values</h2>
-<p>In time series analysis, it is common to encounter missing data due to sensor malfunctions or recording errors. Properly handling missing data is crucial because forecasting models often assume data points are spaced at regular intervals. To address this, we first ensure the data is uniformly spaced by converting the <code>Date_Time</code> index to an hourly frequency. This allows us to easily detect missing data points and fill the gaps accordingly.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>impute_df <span class="op">=</span> air_quality_df.asfreq(<span class="st">"1h"</span>).copy()</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> temp_col <span class="kw">in</span> impute_df.columns:</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  impute_df[temp_col <span class="op">+</span> <span class="st">"_imputed"</span>] <span class="op">=</span> impute_df[temp_col]</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  impute_df[temp_col <span class="op">+</span> <span class="st">"_imputed"</span>] <span class="op">=</span> impute_df[temp_col <span class="op">+</span> <span class="st">"_imputed"</span>].ffill()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>plt.clf()</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>trend_df[<span class="st">"sales"</span>].plot(color <span class="op">=</span> <span class="st">"grey"</span>, alpha <span class="op">=</span> <span class="fl">0.5</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>trend_df[<span class="st">"under_smoothing"</span>].plot(color <span class="op">=</span> <span class="st">"steelblue"</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>trend_df[<span class="st">"over_smoothing"</span>].plot(color <span class="op">=</span> <span class="st">"orange"</span>)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="class_decomp_files/figure-html/plot_over_under_smoothing-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
 </div>
-<p>In this block, we address missing values by using forward-filling (<code>ffill()</code>), which propagates the last valid observation forward until a new non-missing value is encountered. This technique works well when the missing values are sparse or when we expect the data to remain stable over short intervals. We create new columns, such as <code>CO_sensor_imputed</code> and <code>RH_imputed</code>, to store the imputed values, allowing us to compare them with the original data and ensure that no critical information is lost.</p>
+</div>
+</div>
+<section id="cross-validation-for-trend-estimation" class="level3">
+<h3 class="anchored" data-anchor-id="cross-validation-for-trend-estimation">Cross validation for trend estimation</h3>
 </section>
-<section id="visualizing-imputed-values" class="level2">
-<h2 class="anchored" data-anchor-id="visualizing-imputed-values">Visualizing Imputed Values</h2>
-<p>To ensure that our imputation strategy has been applied correctly, we will visually compare the original data with the imputed values. This comparison will highlight where missing values were filled and help us verify that the imputation did not introduce any distortions into the time series.</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> temp_col <span class="kw">in</span> [<span class="st">"CO_sensor"</span>,<span class="st">"RH"</span>]:</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  ax <span class="op">=</span> impute_df[temp_col].plot(figsize <span class="op">=</span> (<span class="dv">20</span>,<span class="dv">6</span>))</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  impute_df[impute_df[temp_col].isnull()][temp_col <span class="op">+</span> <span class="st">"_imputed"</span>].plot(</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    ax <span class="op">=</span> ax,legend <span class="op">=</span> <span class="va">False</span>,marker <span class="op">=</span> <span class="st">"."</span>, color <span class="op">=</span> <span class="st">"red"</span>, linestyle<span class="op">=</span><span class="st">'None'</span>)</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  plt.title(temp_col, fontsize<span class="op">=</span><span class="dv">20</span>)  <span class="co"># Increase the title font size</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  plt.tick_params(axis<span class="op">=</span><span class="st">'both'</span>, which<span class="op">=</span><span class="st">'major'</span>, labelsize<span class="op">=</span><span class="dv">16</span>)</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  plt.xlabel(<span class="st">''</span>)  <span class="co"># Disable x-axis label</span></span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  plt.ylabel(<span class="st">''</span>)  <span class="co"># Disable y-axis label</span></span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="eda_files/figure-html/plot_missing_and_imputed_values-5.png" class="img-fluid figure-img" width="1920"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="eda_files/figure-html/plot_missing_and_imputed_values-6.png" class="img-fluid figure-img" width="1920"></p>
-</figure>
-</div>
-</div>
-</div>
-<p>In this step, we overlay the imputed values onto the original time series. The original data is represented by a continuous line, while missing values that were filled via forward-fill are marked with red dots. This side-by-side comparison helps us visually assess the areas where imputation occurred and check whether it was applied appropriately without affecting the overall trend of the data.</p>
 </section>
 <section id="seasonality" class="level2">
 <h2 class="anchored" data-anchor-id="seasonality">Seasonality</h2>
-<p>Seasonality is a recurring pattern in data that occurs at regular intervals, often influenced by natural or social processes. In the context of air quality, pollutant levels such as carbon monoxide may follow daily or weekly cycles due to human activities like traffic or industrial operations. To detect seasonality, we group the data by the time of day (i.e., by the hour) and calculate the average pollutant levels across all observations for each hour. This provides a clear picture of how pollutant concentrations vary throughout the day.</p>
+<p>++ explain that in order to isolate seasonality we first need to detrend the data. So we indentify the trend, than detrend (exclude the trend) by substracting (if additive) of dividing (if multiplicative) and proceed to isolate the seasonality</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>hours_con <span class="op">=</span> impute_df.groupby(impute_df.index.time)[</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"CO_sensor"</span>].mean().reset_index()</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>hours_con.plot(x <span class="op">=</span> <span class="st">'index'</span>, y <span class="op">=</span> <span class="st">'CO_sensor'</span>, legend <span class="op">=</span> <span class="va">False</span>)</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"Pollutant concentration over day time"</span>)</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">""</span>)</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">""</span>)</span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>season_df <span class="op">=</span> raw_df.copy()</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>season_df[<span class="st">"trend"</span>] <span class="op">=</span> season_df[<span class="st">"sales"</span>].rolling(window <span class="op">=</span> <span class="dv">12</span>).mean()</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>season_df[<span class="st">"trend"</span>] <span class="op">=</span> season_df[<span class="st">"trend"</span>].rolling(window <span class="op">=</span> <span class="dv">2</span>, center <span class="op">=</span> <span class="va">True</span>).mean()</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>season_df[<span class="st">"trend"</span>] <span class="op">=</span> season_df[<span class="st">"trend"</span>].shift(<span class="op">-</span> <span class="dv">12</span> <span class="op">//</span> <span class="dv">2</span>)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>season_df[<span class="st">"detrended_data"</span>] <span class="op">=</span> season_df[<span class="st">"sales"</span>] <span class="op">-</span> season_df[<span class="st">"trend"</span>]</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>season_df[<span class="st">"month"</span>] <span class="op">=</span> season_df.index.month</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>seasonality <span class="op">=</span> season_df.groupby(<span class="st">"month"</span>).mean()[<span class="st">"detrended_data"</span>].reset_index()</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>seasonality.columns <span class="op">=</span> [<span class="st">"month"</span>,<span class="st">"seasonality"</span>]</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>season_df <span class="op">=</span> pd.merge(season_df.copy(),seasonality, on <span class="op">=</span> <span class="st">"month"</span>, how <span class="op">=</span> <span class="st">"left"</span>)</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>season_df[<span class="st">"remainder"</span>] <span class="op">=</span> season_df[<span class="st">"detrended_data"</span>] <span class="op">-</span> season_df[<span class="st">"seasonality"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>plt.clf()</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(nrows<span class="op">=</span><span class="dv">3</span>, ncols<span class="op">=</span><span class="dv">1</span>, figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">12</span>))</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>season_df[<span class="st">"trend"</span>].plot(ax <span class="op">=</span> axes[<span class="dv">0</span>], title <span class="op">=</span> <span class="st">"trend"</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>season_df[<span class="st">"seasonality"</span>].plot(ax <span class="op">=</span> axes[<span class="dv">1</span>], title <span class="op">=</span> <span class="st">"seasonality"</span>)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>season_df[<span class="st">"remainder"</span>].plot(ax <span class="op">=</span> axes[<span class="dv">2</span>], title <span class="op">=</span> <span class="st">"remainder"</span>)</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Adjust layout to avoid overlap</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>plt.tight_layout(pad <span class="op">=</span> <span class="fl">3.0</span>)</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Show the plot</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="eda_files/figure-html/plot_seasonality-9.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="class_decomp_files/figure-html/unnamed-chunk-2-3.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="class_decomp_files/figure-html/unnamed-chunk-2-4.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
-<p>In this final step, we plot the average <code>CO_sensor</code> concentration over the course of a typical day to visualize the intra-day seasonality. This chart allows us to observe how carbon monoxide levels fluctuate during different times of the day, potentially reflecting periods of higher traffic or other factors that influence air quality. Understanding these seasonal patterns is key for making accurate predictions and taking appropriate action in environmental monitoring.</p>
 
 
 </section>
