@@ -1,0 +1,88 @@
+---
+title: "STL Decomposition"
+---
+
+```{r set_up_python, echo=FALSE}
+#|echo: FALSE
+
+if (Sys.getenv("USERPROFILE") == "C:\\Users\\internet"){
+  
+  python_path = paste0("C:\\Users\\internet\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+} else {
+  
+  python_path = paste0("C:\\Users\\Home\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+}
+
+reticulate::use_python(python_path)
+
+```
+
+```{python}
+
+import numpy as np
+
+import pandas as pd
+
+import matplotlib.pyplot as plt
+
+import os 
+
+from statsmodels.tsa.seasonal import STL
+
+```
+
+```{python import_data}
+
+file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_retail_sales.csv"
+
+raw_df = pd.read_csv(file_path,index_col = "date")
+
+raw_df.index = pd.to_datetime(raw_df.index)
+
+```
+
+## Trend
+
+++ explain the parameters of the STL implementation in statsmodels.tsa.seasonal
+explicitly address the seasonal, period and robust parameters. Other parameters
+can be left alone - the default values are typically good enough.
+
+```{python stl_decomp}
+
+decompostion_df = raw_df.copy()
+
+stl_decomp = STL(endog = decompostion_df["sales"], period = 12, seasonal = 7,
+                 robust = True).fit()
+                 
+decompostion_df["trend"] = stl_decomp.trend
+
+decompostion_df["season"] = stl_decomp.seasonal
+
+decompostion_df["remainder"] = stl_decomp.resid
+                 
+
+
+```
+
+```{python plot_decompositon}
+
+plt.clf()
+
+fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(8, 12))
+
+
+decompostion_df["trend"].plot(ax = axes[0], title = "trend")
+decompostion_df["seasonality"].plot(ax = axes[1], title = "seasonality")
+decompostion_df["remainder"].plot(ax = axes[2], title = "remainder")
+
+# Adjust layout to avoid overlap
+plt.tight_layout(pad = 3.0)
+
+# Show the plot
+plt.show()
+
+```
+
+

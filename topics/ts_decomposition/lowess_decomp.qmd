@@ -37,7 +37,6 @@ from sklearn.model_selection import KFold
 
 ```
 
-
 ```{python import_data}
 
 file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_retail_sales.csv"
@@ -50,10 +49,7 @@ raw_df.index = pd.to_datetime(raw_df.index)
 
 ## LOWESS parametres
 
-++ explain the parameters in python implementations:
-frac - fraction of data for the window size (determines the smoothness)
-it - number of iterations for robust regression. Also explain the endog and exog parameters
-
+++ explain the parameters in python implementations: frac - fraction of data for the window size (determines the smoothness) it - number of iterations for robust regression. Also explain the endog and exog parameters
 
 ```{python lowess}
 
@@ -67,7 +63,6 @@ raw_df["trend_lowess"] = ts_decomp[:,1]
 
 
 ```
-
 
 ### Cross validation to select appropriate fraction parameter
 
@@ -100,4 +95,3 @@ pd.concat(results, axis = 0)
   
 
 ```
-
