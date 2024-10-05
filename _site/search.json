@@ -4,14 +4,14 @@
     "href": "index.html",
     "title": "DS_advanced_website",
     "section": "",
-    "text": "Introduction\n\nFeature Engineering\nForecasting\n\nForecasting\n\nForecasting pipeline\nOne step forecasting\nMultistep forecasting\n\nDirect forecasting\nRecursive forecasting\nForecasting comparison\n\n\nTime Series Decomposition\n\nTransformations\nClassical decomposition\nLOWESS decomposition"
+    "text": "Introduction\n\nFeature Engineering\nForecasting\n\nForecasting\n\nForecasting pipeline\nOne step forecasting\nMultistep forecasting\n\nDirect forecasting\nRecursive forecasting\nForecasting comparison\n\n\nTime Series Decomposition\n\nTransformations\nClassical decomposition\nLOWESS decomposition\nSTL decomposition\n\nMissing data imputation"
   },
   {
     "objectID": "index.html#topics",
     "href": "index.html#topics",
     "title": "DS_advanced_website",
     "section": "",
-    "text": "Introduction\n\nFeature Engineering\nForecasting\n\nForecasting\n\nForecasting pipeline\nOne step forecasting\nMultistep forecasting\n\nDirect forecasting\nRecursive forecasting\nForecasting comparison\n\n\nTime Series Decomposition\n\nTransformations\nClassical decomposition\nLOWESS decomposition"
+    "text": "Introduction\n\nFeature Engineering\nForecasting\n\nForecasting\n\nForecasting pipeline\nOne step forecasting\nMultistep forecasting\n\nDirect forecasting\nRecursive forecasting\nForecasting comparison\n\n\nTime Series Decomposition\n\nTransformations\nClassical decomposition\nLOWESS decomposition\nSTL decomposition\n\nMissing data imputation"
   },
   {
     "objectID": "topics/ts_decomposition/class_decomp.html",
@@ -75,5 +75,89 @@
     "title": "LOWESS Decomposition",
     "section": "LOWESS parametres",
     "text": "LOWESS parametres\n++ explain the parameters in python implementations: frac - fraction of data for the window size (determines the smoothness) it - number of iterations for robust regression. Also explain the endog and exog parameters\n\n\ny = raw_df[\"sales\"]\n\nx = np.arange(0, len(y))\n\nts_decomp = lowess(endog = y, exog = x, frac = 0.1, it = 3)\n\nraw_df[\"trend_lowess\"] = ts_decomp[:,1]\n\n\nCross validation to select appropriate fraction parameter\n\ndef get_rmse_for_df(X,y, frac_param):\n  KFold_obj = KFold(n_splits = 5, shuffle = True, random_state = 0)\n  rmse_list = []\n  for train_index, test_index in KFold_obj.split(X,y):\n    X_train = X[train_index]\n    y_train = y.iloc[train_index]\n    X_test = X[test_index]\n    y_test = y.iloc[test_index]\n    y_pred = lowess(endog = y_train, exog = X_train, frac = frac_param, xvals = X_test)\n    rmse = root_mean_squared_error(y_pred, y_test)\n    rmse_list.append(rmse)\n  return rmse_list\n\n\nresults = []\n\nfor temp_frac in [0.05,0.1,0.5,1]:\n  rmse_list = get_rmse_for_df(X = x,y = y,frac_param = temp_frac)\n  rmse_df = pd.DataFrame(data = rmse_list, columns = [\"rmse\"])\n  rmse_df[\"frac\"] = temp_frac\n  results.append(rmse_df)\n\n  \npd.concat(results, axis = 0)\n\n           rmse  frac\n0  22981.706955  0.05\n1  22624.297346  0.05\n2  20582.387871  0.05\n3  28572.985707  0.05\n4  21376.838789  0.05\n0  23018.284152  0.10\n1  21215.656841  0.10\n2  20279.923647  0.10\n3  25214.068880  0.10\n4  20387.775112  0.10\n0  26184.512853  0.50\n1  22354.596572  0.50\n2  23964.726098  0.50\n3  25516.588727  0.50\n4  20683.629095  0.50\n0  26343.368462  1.00\n1  23258.024086  1.00\n2  24924.462787  1.00\n3  26254.158157  1.00\n4  20870.150531  1.00"
+  },
+  {
+    "objectID": "topics/ts_decomposition/stl_decomp.html",
+    "href": "topics/ts_decomposition/stl_decomp.html",
+    "title": "STL Decomposition",
+    "section": "",
+    "text": "import numpy as np\n\nimport pandas as pd\n\nimport matplotlib.pyplot as plt\n\nimport os \n\nfrom statsmodels.tsa.seasonal import STL\nfile_path = os.path.expanduser(\"~/Documents\") + \"\\\\DS_advanced_website\\\\data\\\\example_retail_sales.csv\"\n\nraw_df = pd.read_csv(file_path,index_col = \"date\")\n\nraw_df.index = pd.to_datetime(raw_df.index)"
+  },
+  {
+    "objectID": "topics/ts_decomposition/stl_decomp.html#trend",
+    "href": "topics/ts_decomposition/stl_decomp.html#trend",
+    "title": "STL Decomposition",
+    "section": "Trend",
+    "text": "Trend\n++ explain the parameters of the STL implementation in statsmodels.tsa.seasonal explicitly address the seasonal, period and robust parameters. Other parameters can be left alone - the default values are typically good enough.\n\n\ndecompostion_df = raw_df.copy()\n\nstl_decomp = STL(endog = decompostion_df[\"sales\"], period = 12, seasonal = 7,\n                 robust = True).fit()\n                 \ndecompostion_df[\"trend\"] = stl_decomp.trend\n\ndecompostion_df[\"seasonality\"] = stl_decomp.seasonal\n\ndecompostion_df[\"remainder\"] = stl_decomp.resid\n                 \n\n\nplt.clf()\n\nfig, axes = plt.subplots(nrows=3, ncols=1, figsize=(8, 12))\n\n\ndecompostion_df[\"trend\"].plot(ax = axes[0], title = \"trend\")\ndecompostion_df[\"seasonality\"].plot(ax = axes[1], title = \"seasonality\")\ndecompostion_df[\"remainder\"].plot(ax = axes[2], title = \"remainder\")\n\n# Adjust layout to avoid overlap\nplt.tight_layout(pad = 3.0)\n\n# Show the plot\nplt.show()"
+  },
+  {
+    "objectID": "topics/na_imputation/na_imputation.html",
+    "href": "topics/na_imputation/na_imputation.html",
+    "title": "Missing data imputation",
+    "section": "",
+    "text": "import numpy as np\n\nimport pandas as pd\n\nimport matplotlib.pyplot as plt\n\nimport os \n\nfrom statsmodels.tsa.seasonal import STL\nfile_path = os.path.expanduser(\"~/Documents\") + \"\\\\DS_advanced_website\\\\data\\\\example_retail_sales_missing.csv\"\n\nraw_df = pd.read_csv(file_path,index_col = \"date\")\n\nraw_df.index = pd.to_datetime(raw_df.index)\n\nna_idx = raw_df.isnull()\n\n# url = \"https://raw.githubusercontent.com/facebook/prophet/master/examples/example_retail_sales.csv\"\n# df = pd.read_csv(url)\n# \n# df = df.iloc[0:160].copy()\n# \n# df.columns = [\"date\",\"sales\"]\n# \n# df = df.set_index(\"date\").copy()\n# \n# \n# # Insert missing data into dataframe\n# df.iloc[10:11] = np.NaN\n# df.iloc[25:28] = np.NaN\n# df.iloc[40:45] = np.NaN\n# df.iloc[70:94] = np.NaN\n# \n# \n# df.to_csv(file_path)\nprint(f\"There are {raw_df['sales'].isnull().sum()} missing values, these are {np.round(raw_df['sales'].isnull().sum() / len(raw_df)* 100,3)} percent of the data\")\n\nThere are 33 missing values, these are 20.625 percent of the data\nplt.clf()\n\nraw_df[\"sales\"].plot(marker = \".\")\n\nplt.show()"
+  },
+  {
+    "objectID": "topics/na_imputation/na_imputation.html#forward-fill",
+    "href": "topics/na_imputation/na_imputation.html#forward-fill",
+    "title": "Missing data imputation",
+    "section": "Forward fill",
+    "text": "Forward fill\n\nffill_df = raw_df.ffill()\n\nplt.clf()\n\nax = ffill_df.plot(linestyle=\"-\", marker=\".\")\n\nffill_df[na_idx].plot(ax=ax, legend=None, marker=\".\", color=\"r\")\n\nplt.show()"
+  },
+  {
+    "objectID": "topics/na_imputation/na_imputation.html#backward-fill",
+    "href": "topics/na_imputation/na_imputation.html#backward-fill",
+    "title": "Missing data imputation",
+    "section": "Backward fill",
+    "text": "Backward fill\n++ explain that backward filling can introduce “data leakage” because we are carrying to the past information from the future.\n\nbfill_df = raw_df.bfill()\n\nplt.clf()\n\nax = bfill_df.plot(linestyle=\"-\", marker=\".\")\n\nbfill_df[na_idx].plot(ax=ax, legend=None, marker=\".\", color=\"r\")\n\nplt.show()"
+  },
+  {
+    "objectID": "topics/na_imputation/na_imputation.html#linear-interpolation",
+    "href": "topics/na_imputation/na_imputation.html#linear-interpolation",
+    "title": "Missing data imputation",
+    "section": "Linear interpolation",
+    "text": "Linear interpolation\n\nlin_inter = raw_df.interpolate(method = \"time\")\n\nplt.clf()\n\nax = lin_inter.plot(linestyle=\"-\", marker=\".\")\n\nlin_inter[na_idx].plot(ax=ax, legend=None, marker=\".\", color=\"r\")\n\nplt.show()"
+  },
+  {
+    "objectID": "topics/na_imputation/na_imputation.html#spline-interpolation",
+    "href": "topics/na_imputation/na_imputation.html#spline-interpolation",
+    "title": "Missing data imputation",
+    "section": "Spline interpolation",
+    "text": "Spline interpolation\n\nspline_inter = raw_df.interpolate(method = \"spline\", order = 3)\n\nplt.clf()\n\nax = spline_inter.plot(linestyle=\"-\", marker=\".\")\n\nspline_inter[na_idx].plot(ax=ax, legend=None, marker=\".\", color=\"r\")\n\nplt.show()"
+  },
+  {
+    "objectID": "topics/outliers/outliers.html",
+    "href": "topics/outliers/outliers.html",
+    "title": "Missing data imputation",
+    "section": "",
+    "text": "import numpy as np\n\nimport pandas as pd\n\nimport matplotlib.pyplot as plt\n\nimport os \n\nfrom statsmodels.tsa.seasonal import STL\nfile_path = os.path.expanduser(\"~/Documents\") + \"\\\\DS_advanced_website\\\\data\\\\example_retail_sales_outliers.csv\"\n\nraw_df = pd.read_csv(file_path,index_col = \"date\")\n\nraw_df.index = pd.to_datetime(raw_df.index)\nplt.clf()\n\nraw_df[\"sales\"].plot(marker = \".\")\n\nplt.show()"
+  },
+  {
+    "objectID": "topics/outliers/outliers.html#de-seasonalise-data",
+    "href": "topics/outliers/outliers.html#de-seasonalise-data",
+    "title": "Missing data imputation",
+    "section": "De seasonalise data",
+    "text": "De seasonalise data\n++ explain that we are deseasonalizing the data in order to prevent disturbance for outlier identification\n\n\nstl_decomp = STL(raw_df[\"sales\"], robust = True).fit()\n\nseasonal_component = stl_decomp.seasonal\n\nraw_df[\"sales_deseasonalised\"] = raw_df[\"sales\"] - seasonal_component\n\n\nplt.clf()\n\nraw_df[\"sales_deseasonalised\"].plot(marker = \".\")\n\nplt.title(\"Deseasonlalized data with outliers\")\n\nplt.show()"
+  },
+  {
+    "objectID": "topics/outliers/outliers.html#identify-outliers",
+    "href": "topics/outliers/outliers.html#identify-outliers",
+    "title": "Missing data imputation",
+    "section": "Identify outliers",
+    "text": "Identify outliers\n\nRolling mean and standard deviation\n\n\nraw_df[[\"roll_mean\",\"roll_std\"]] = (\n                \n                raw_df[\"sales_deseasonalised\"]\n                .rolling(window = 13,center = True, min_periods = 1)\n                .agg({\"roll_mean\":\"mean\", \"roll_std\":\"std\"})\n  \n)\n\n\n\nmargin_factor = 3\n\nraw_df[\"upper\"] = raw_df[\"roll_mean\"] + margin_factor * raw_df[\"roll_std\"]\n\nraw_df[\"lower\"] = raw_df[\"roll_mean\"] - margin_factor * raw_df[\"roll_std\"]\n\nraw_df[\"is_outlier\"] = np.abs((raw_df[\"sales_deseasonalised\"] &lt;= raw_df[\"lower\"]) |\n                              (raw_df[\"sales_deseasonalised\"] &gt;= raw_df[\"upper\"]))\n\n\nplt.clf()\n\nax = raw_df[\"sales_deseasonalised\"].plot()\n\nraw_df[\"upper\"].plot(ax = ax, color = \"black\", linestyle = \"dashed\")\n\nraw_df.loc[raw_df[\"is_outlier\"],\"sales_deseasonalised\"].plot(ax = ax,\n                                                             color = \"red\",\n                                                             marker = \"o\",\n                                                             linestyle = \"none\")\n\nplt.show()\n\n\n\n\n\n\n\n\n\n\nRolling median and median absolute deviation\n\n\ndef mad(x):\n  return np.median(np.abs(x - np.median(x)))\n\nraw_df[[\"roll_median\",\"roll_mad\"]] = (\n                \n                raw_df[\"sales_deseasonalised\"]\n                .rolling(window = 13,center = True, min_periods = 1)\n                .agg({\"roll_median\":\"median\", \"roll_mad\":mad})\n  \n)\n\n\n\nmargin_factor = 3\n\nraw_df[\"upper_2\"] = raw_df[\"roll_median\"] + margin_factor * raw_df[\"roll_mad\"]\n\nraw_df[\"lower_2\"] = raw_df[\"roll_median\"] - margin_factor * raw_df[\"roll_mad\"]\n\nraw_df[\"is_outlier_2\"] = np.abs((raw_df[\"sales_deseasonalised\"] &lt;= raw_df[\"lower_2\"]) |\n                              (raw_df[\"sales_deseasonalised\"] &gt;= raw_df[\"upper_2\"]))\n\n\nplt.clf()\n\nax = raw_df[\"sales_deseasonalised\"].plot()\n\nraw_df[\"upper_2\"].plot(ax = ax, color = \"black\", linestyle = \"dashed\")\n\nraw_df.loc[raw_df[\"is_outlier_2\"],\"sales_deseasonalised\"].plot(ax = ax,\n                                                             color = \"red\",\n                                                             marker = \"o\",\n                                                             linestyle = \"none\")\n\nplt.show()"
+  },
+  {
+    "objectID": "topics/outliers/outliers.html#impute-outliers",
+    "href": "topics/outliers/outliers.html#impute-outliers",
+    "title": "Missing data imputation",
+    "section": "Impute outliers",
+    "text": "Impute outliers\n\n\nraw_df[\"sales_na\"] = raw_df[\"sales_deseasonalised\"]\n\nraw_df.loc[raw_df[\"is_outlier_2\"],\"sales_na\"] = np.nan\n\nraw_df[\"sales_imputed\"] = raw_df[\"sales_na\"].interpolate(method = \"time\",\n                                                         inlace = True)\n\n\nplt.clf()\n\nax = raw_df[\"sales_imputed\"].plot()\n\nraw_df.loc[raw_df[\"is_outlier_2\"],\"sales_imputed\"].plot(ax = ax,\n                                                      alpha = 0.5,\n                                                      color = \"red\",\n                                                      marker = \"o\",\n                                                      linestyle = \"none\")\n\nplt.title(\"Imputed outliers\")\n\n\nplt.show()"
+  },
+  {
+    "objectID": "topics/na_imputation/na_imputation.html#seasonal-decomposition-and-interpolation",
+    "href": "topics/na_imputation/na_imputation.html#seasonal-decomposition-and-interpolation",
+    "title": "Missing data imputation",
+    "section": "Seasonal decomposition and interpolation",
+    "text": "Seasonal decomposition and interpolation\n++ explain that we first use linear interpolation because STL can not handle missing data\n\n\nstl_inter = STL(raw_df.interpolate(method = \"time\"), seasonal = 31).fit()\n\nseasonal_component = stl_inter.seasonal\n\ndeaseasonlised_df = raw_df[\"sales\"] - seasonal_component\n\ndf_inter = deaseasonlised_df.interpolate(method = \"time\")\n\ndf_final = df_inter + seasonal_component\n\ndf_final = df_final.to_frame().rename(columns = {0:\"sales\"})\n\n\nplt.clf()\n\nax = df_final.plot(linestyle=\"-\", marker=\".\")\n\ndf_final[na_idx].plot(ax=ax, legend=None, marker=\".\", color=\"r\")\n\nplt.show()"
   }
 ]

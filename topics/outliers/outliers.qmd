@@ -1,0 +1,216 @@
+---
+title: "Missing data imputation"
+---
+
+```{r set_up_python, echo=FALSE}
+#|echo: FALSE
+
+if (Sys.getenv("USERPROFILE") == "C:\\Users\\internet"){
+  
+  python_path = paste0("C:\\Users\\internet\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+} else {
+  
+  python_path = paste0("C:\\Users\\Home\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+}
+
+reticulate::use_python(python_path)
+
+```
+
+```{python}
+
+import numpy as np
+
+import pandas as pd
+
+import matplotlib.pyplot as plt
+
+import os 
+
+from statsmodels.tsa.seasonal import STL
+
+```
+
+```{python import_data}
+
+file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_retail_sales_outliers.csv"
+
+raw_df = pd.read_csv(file_path,index_col = "date")
+
+raw_df.index = pd.to_datetime(raw_df.index)
+
+
+```
+
+
+```{python plot_outliers}
+
+plt.clf()
+
+raw_df["sales"].plot(marker = ".")
+
+plt.show()
+
+```
+
+## De seasonalise data
+
+++ explain that we are deseasonalizing the data in order to prevent disturbance for outlier identification
+
+```{python deaseasonlise}
+
+stl_decomp = STL(raw_df["sales"], robust = True).fit()
+
+seasonal_component = stl_decomp.seasonal
+
+raw_df["sales_deseasonalised"] = raw_df["sales"] - seasonal_component
+
+```
+
+```{python plot_deseason}
+
+plt.clf()
+
+raw_df["sales_deseasonalised"].plot(marker = ".")
+
+plt.title("Deseasonlalized data with outliers")
+
+plt.show()
+```
+
+
+## Identify outliers
+
+### Rolling mean and standard deviation
+
+```{python }
+
+raw_df[["roll_mean","roll_std"]] = (
+                
+                raw_df["sales_deseasonalised"]
+                .rolling(window = 13,center = True, min_periods = 1)
+                .agg({"roll_mean":"mean", "roll_std":"std"})
+  
+)
+
+```
+
+```{python flag_outliers_mean}
+
+margin_factor = 3
+
+raw_df["upper"] = raw_df["roll_mean"] + margin_factor * raw_df["roll_std"]
+
+raw_df["lower"] = raw_df["roll_mean"] - margin_factor * raw_df["roll_std"]
+
+raw_df["is_outlier"] = np.abs((raw_df["sales_deseasonalised"] <= raw_df["lower"]) |
+                              (raw_df["sales_deseasonalised"] >= raw_df["upper"]))
+
+```
+
+```{python  plot_outlier_mean}
+
+plt.clf()
+
+ax = raw_df["sales_deseasonalised"].plot()
+
+raw_df["upper"].plot(ax = ax, color = "black", linestyle = "dashed")
+
+raw_df.loc[raw_df["is_outlier"],"sales_deseasonalised"].plot(ax = ax,
+                                                             color = "red",
+                                                             marker = "o",
+                                                             linestyle = "none")
+
+plt.show()
+
+
+```
+
+### Rolling median and median absolute deviation
+
+```{python }
+
+def mad(x):
+  return np.median(np.abs(x - np.median(x)))
+
+raw_df[["roll_median","roll_mad"]] = (
+                
+                raw_df["sales_deseasonalised"]
+                .rolling(window = 13,center = True, min_periods = 1)
+                .agg({"roll_median":"median", "roll_mad":mad})
+  
+)
+
+```
+
+```{python flag_outliers_median}
+
+margin_factor = 3
+
+raw_df["upper_2"] = raw_df["roll_median"] + margin_factor * raw_df["roll_mad"]
+
+raw_df["lower_2"] = raw_df["roll_median"] - margin_factor * raw_df["roll_mad"]
+
+raw_df["is_outlier_2"] = np.abs((raw_df["sales_deseasonalised"] <= raw_df["lower_2"]) |
+                              (raw_df["sales_deseasonalised"] >= raw_df["upper_2"]))
+
+```
+
+```{python  plot_outlier_median}
+
+plt.clf()
+
+ax = raw_df["sales_deseasonalised"].plot()
+
+raw_df["upper_2"].plot(ax = ax, color = "black", linestyle = "dashed")
+
+raw_df["lower_2"].plot(ax = ax, color = "black", linestyle = "dashed")
+
+raw_df.loc[raw_df["is_outlier_2"],"sales_deseasonalised"].plot(ax = ax,
+                                                             color = "red",
+                                                             marker = "o",
+                                                             linestyle = "none")
+
+plt.show()
+
+
+```
+
+## Impute outliers
+
+```{python impute_outlier}
+
+raw_df["sales_na"] = raw_df["sales_deseasonalised"]
+
+raw_df.loc[raw_df["is_outlier_2"],"sales_na"] = np.nan
+
+raw_df["sales_imputed"] = raw_df["sales_na"].interpolate(method = "time",
+                                                         inlace = True)
+
+
+```
+
+
+```{python plot_imputed_outlier}
+
+plt.clf()
+
+ax = raw_df["sales_imputed"].plot()
+
+raw_df.loc[raw_df["is_outlier_2"],"sales_imputed"].plot(ax = ax,
+                                                      alpha = 0.5,
+                                                      color = "red",
+                                                      marker = "o",
+                                                      linestyle = "none")
+
+plt.title("Imputed outliers")
+
+
+plt.show()
+
+
+```
+
+

@@ -1,0 +1,71 @@
+---
+title: "Autoregressive processes"
+---
+
+```{r set_up_python, echo=FALSE}
+#|echo: FALSE
+
+if (Sys.getenv("USERPROFILE") == "C:\\Users\\internet"){
+  
+  python_path = paste0("C:\\Users\\internet\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+} else {
+  
+  python_path = paste0("C:\\Users\\Home\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+}
+
+reticulate::use_python(python_path)
+
+```
+
+```{python}
+
+import numpy as np
+
+import pandas as pd
+
+import matplotlib.pyplot as plt
+
+import os 
+
+```
+
+# AR 1
+
+```{python }
+
+num_periods = 1000
+
+ar_coeff = 0.9
+
+const_term = 0
+
+time_index = pd.date_range(start = "2000-01-01", periods = num_periods,
+                           freq = "d")
+                           
+time_series = np.zeros(num_periods)
+
+for t in range(1,num_periods):
+  noise = np.random.normal()
+  time_series[t] = const_term + ar_coeff * time_series[t - 1] + noise
+
+ar1_df = pd.DataFrame(data = time_series, index = time_index)
+
+
+```
+
+```{python plot_ar1}
+
+plt.clf()
+
+ar1_df.plot(legend = False)
+
+plt.title("AR 1 process")
+
+plt.show()
+
+```
+
+
+

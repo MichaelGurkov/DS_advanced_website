@@ -19,3 +19,6 @@ title: "DS_advanced_website"
    -  [**Transformations**](topics/ts_decomposition/transformations.qmd)
    -  [**Classical decomposition**](topics/ts_decomposition/class_decomp.qmd)
    -  [**LOWESS decomposition**](topics/ts_decomposition/lowess_decomp.qmd)
+   -  [**STL decomposition**](topics/ts_decomposition/stl_decomp.qmd)
+
+-  [**Missing data imputation**]()

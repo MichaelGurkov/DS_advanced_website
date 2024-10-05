@@ -45,9 +45,7 @@ raw_df.index = pd.to_datetime(raw_df.index)
 
 ## Trend
 
-++ explain the parameters of the STL implementation in statsmodels.tsa.seasonal
-explicitly address the seasonal, period and robust parameters. Other parameters
-can be left alone - the default values are typically good enough.
+++ explain the parameters of the STL implementation in statsmodels.tsa.seasonal explicitly address the seasonal, period and robust parameters. Other parameters can be left alone - the default values are typically good enough.
 
 ```{python stl_decomp}
 
@@ -58,7 +56,7 @@ stl_decomp = STL(endog = decompostion_df["sales"], period = 12, seasonal = 7,
                  
 decompostion_df["trend"] = stl_decomp.trend
 
-decompostion_df["season"] = stl_decomp.seasonal
+decompostion_df["seasonality"] = stl_decomp.seasonal
 
 decompostion_df["remainder"] = stl_decomp.resid
                  
@@ -84,5 +82,3 @@ plt.tight_layout(pad = 3.0)
 plt.show()
 
 ```
-
-

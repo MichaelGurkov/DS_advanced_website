@@ -1,0 +1,117 @@
+---
+title: "Autoregressive processes"
+---
+
+```{r set_up_python, echo=FALSE}
+#|echo: FALSE
+
+if (Sys.getenv("USERPROFILE") == "C:\\Users\\internet"){
+  
+  python_path = paste0("C:\\Users\\internet\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+} else {
+  
+  python_path = paste0("C:\\Users\\Home\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+}
+
+reticulate::use_python(python_path)
+
+```
+
+```{python}
+
+import numpy as np
+
+import pandas as pd
+
+import matplotlib.pyplot as plt
+
+import os 
+
+```
+
+# AR 1
+
+```{python }
+
+num_periods = 1000
+
+ar_coeff = 0.9
+
+const_term = 0
+
+time_index = pd.date_range(start = "2000-01-01", periods = num_periods,
+                           freq = "d")
+                           
+ar1_series = np.zeros(num_periods)
+
+white_noise_series = np.zeros(num_periods)
+
+trend_series = np.zeros(num_periods)
+
+
+for t in range(1,num_periods):
+  noise = np.random.normal()
+  white_noise_series[t] = noise
+  ar1_series[t] = const_term + ar_coeff * ar1_series[t - 1] + noise
+  trend_series[t] = t + noise
+
+ts_df = pd.DataFrame(data = list(zip(white_noise_series,ar1_series,trend_series)),
+index = time_index, columns = ["white_noise","ar_1","trend"])
+
+
+```
+
+```{python }
+
+
+def plot_lags(temp_df, plot_title):
+
+  fig, axes = plt.subplots(3,3)
+  
+  for temp_ind, temp_ax in enumerate(axes.flatten()):
+    temp_ax.scatter(x = temp_df.iloc[:,0],
+                    y = temp_df.iloc[:,0].shift(temp_ind), marker = ".")
+    temp_ax.set_title(f"Lag_{temp_ind}")
+  
+  fig.suptitle(plot_title, fontsize=16)
+  
+  plt.tight_layout()
+  
+  plt.subplots_adjust(hspace=1, top=0.8)
+  
+  plt.show()
+
+
+
+```
+
+```{python plot_white_noise}
+
+plt.clf()
+
+plot_lags(ts_df[["white_noise"]].copy(), "White noise")
+
+```
+
+
+```{python plot_ar_1}
+
+plt.clf()
+
+plot_lags(ts_df[["ar_1"]].copy(), "Ar 1")
+
+
+```
+
+
+
+```{python plot_trend}
+
+plt.clf()
+
+plot_lags(ts_df[["trend"]].copy(), "Trend")
+
+
+```
