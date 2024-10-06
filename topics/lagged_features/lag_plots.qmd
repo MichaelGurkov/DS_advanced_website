@@ -31,6 +31,20 @@ import os
 
 ```
 
+
+```{python import_data}
+
+file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_retail_sales.csv"
+
+raw_df = pd.read_csv(file_path,index_col = "date")
+
+raw_df.index = pd.to_datetime(raw_df.index)
+
+
+```
+
+
+
 # AR 1
 
 ```{python }
@@ -60,8 +74,61 @@ for t in range(1,num_periods):
 ts_df = pd.DataFrame(data = list(zip(white_noise_series,ar1_series,trend_series)),
 index = time_index, columns = ["white_noise","ar_1","trend"])
 
+del white_noise_series, ar1_series, trend_series
+
+del t, time_index, ar_coeff, const_term, noise, num_periods
 
 ```
+
+
+# Pandas implemenation
+
+```{python }
+
+
+def plot_lags_pandas (temp_df, plot_title, ncols = 3, nrows = 3):
+
+  fig, axes = plt.subplots(ncols,nrows)
+  
+  for temp_ind, temp_ax in enumerate(axes.flatten()):
+    pd.plotting.lag_plot(temp_df, lag = temp_ind + 1, ax = temp_ax,
+                         marker = ".", linestyle='None')
+    temp_ax.set_title(f"Lag_{temp_ind}")
+    
+ 
+  fig.suptitle(plot_title, fontsize=16)
+  
+  plt.tight_layout()
+  
+  plt.subplots_adjust(hspace=1, top=0.8)
+  
+  plt.show()
+
+
+```
+
+```{python plot_white_noise_pandas}
+
+plot_lags_pandas(ts_df[["white_noise"]], plot_title = "White noise")
+
+```
+
+
+```{python plot_trend_pandas}
+
+plot_lags_pandas(ts_df[["trend"]], plot_title = "Trend")
+
+```
+
+
+```{python plot_retail_sales}
+
+plot_lags_pandas(raw_df.copy(), "Retail sales", nrows = 4, ncols = 3)
+
+```
+
+
+# Manual
 
 ```{python }
 
@@ -95,7 +162,6 @@ plot_lags(ts_df[["white_noise"]].copy(), "White noise")
 
 ```
 
-
 ```{python plot_ar_1}
 
 plt.clf()
@@ -104,8 +170,6 @@ plot_lags(ts_df[["ar_1"]].copy(), "Ar 1")
 
 
 ```
-
-
 
 ```{python plot_trend}
 

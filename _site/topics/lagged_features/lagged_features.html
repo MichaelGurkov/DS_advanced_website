@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Missing data imputation – DS_advanced_website</title>
+<title>Lagged features – DS_advanced_website</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -146,13 +146,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#de-seasonalise-data" id="toc-de-seasonalise-data" class="nav-link active" data-scroll-target="#de-seasonalise-data">De seasonalise data</a></li>
-  <li><a href="#identify-outliers" id="toc-identify-outliers" class="nav-link" data-scroll-target="#identify-outliers">Identify outliers</a>
+  <li><a href="#lagged-features" id="toc-lagged-features" class="nav-link active" data-scroll-target="#lagged-features">Lagged features</a>
   <ul class="collapse">
-  <li><a href="#rolling-mean-and-standard-deviation" id="toc-rolling-mean-and-standard-deviation" class="nav-link" data-scroll-target="#rolling-mean-and-standard-deviation">Rolling mean and standard deviation</a></li>
-  <li><a href="#rolling-median-and-median-absolute-deviation" id="toc-rolling-median-and-median-absolute-deviation" class="nav-link" data-scroll-target="#rolling-median-and-median-absolute-deviation">Rolling median and median absolute deviation</a></li>
+  <li><a href="#pandas-implementation" id="toc-pandas-implementation" class="nav-link" data-scroll-target="#pandas-implementation">pandas implementation</a></li>
+  <li><a href="#feature_engine-implementation" id="toc-feature_engine-implementation" class="nav-link" data-scroll-target="#feature_engine-implementation">feature_engine implementation</a></li>
   </ul></li>
-  <li><a href="#impute-outliers" id="toc-impute-outliers" class="nav-link" data-scroll-target="#impute-outliers">Impute outliers</a></li>
   </ul>
 </nav>
     </div>
@@ -161,7 +159,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Missing data imputation</h1>
+<h1 class="title">Lagged features</h1>
 </div>
 
 
@@ -188,192 +186,69 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os </span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> statsmodels.tsa.seasonal <span class="im">import</span> STL</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> feature_engine.timeseries.forecasting <span class="im">import</span> LagFeatures</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>file_path <span class="op">=</span> os.path.expanduser(<span class="st">"~/Documents"</span>) <span class="op">+</span> <span class="st">"</span><span class="ch">\\</span><span class="st">DS_advanced_website</span><span class="ch">\\</span><span class="st">data</span><span class="ch">\\</span><span class="st">example_retail_sales_outliers.csv"</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>file_path <span class="op">=</span> os.path.expanduser(<span class="st">"~/Documents"</span>) <span class="op">+</span> <span class="st">"</span><span class="ch">\\</span><span class="st">DS_advanced_website</span><span class="ch">\\</span><span class="st">data</span><span class="ch">\\</span><span class="st">example_retail_sales.csv"</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>raw_df <span class="op">=</span> pd.read_csv(file_path,index_col <span class="op">=</span> <span class="st">"date"</span>)</span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>raw_df.index <span class="op">=</span> pd.to_datetime(raw_df.index)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+<section id="lagged-features" class="level2">
+<h2 class="anchored" data-anchor-id="lagged-features">Lagged features</h2>
+<section id="pandas-implementation" class="level3">
+<h3 class="anchored" data-anchor-id="pandas-implementation">pandas implementation</h3>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>plt.clf()</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"sales"</span>].plot(marker <span class="op">=</span> <span class="st">"."</span>)</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>lag_df <span class="op">=</span> raw_df.copy()</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> temp_lag <span class="kw">in</span> [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">12</span>]:</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  lag_df[<span class="ss">f"lag_</span><span class="sc">{</span>temp_lag<span class="sc">}</span><span class="ss">"</span>] <span class="op">=</span> lag_df[<span class="st">"sales"</span>].shift(freq <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>temp_lag<span class="sc">}</span><span class="ss">MS"</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>plt.clf()</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>lag_df.plot(alpha <span class="op">=</span> <span class="fl">0.5</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="outliers_files/figure-html/plot_outliers-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="lagged_features_files/figure-html/plot_lags-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="lagged_features_files/figure-html/plot_lags-2.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
-<section id="de-seasonalise-data" class="level2">
-<h2 class="anchored" data-anchor-id="de-seasonalise-data">De seasonalise data</h2>
-<p>++ explain that we are deseasonalizing the data in order to prevent disturbance for outlier identification</p>
+</section>
+<section id="feature_engine-implementation" class="level3">
+<h3 class="anchored" data-anchor-id="feature_engine-implementation">feature_engine implementation</h3>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>stl_decomp <span class="op">=</span> STL(raw_df[<span class="st">"sales"</span>], robust <span class="op">=</span> <span class="va">True</span>).fit()</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>seasonal_component <span class="op">=</span> stl_decomp.seasonal</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"sales_deseasonalised"</span>] <span class="op">=</span> raw_df[<span class="st">"sales"</span>] <span class="op">-</span> seasonal_component</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>plt.clf()</span>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>lag_trans <span class="op">=</span> LagFeatures(variables <span class="op">=</span> [<span class="st">"sales"</span>], freq <span class="op">=</span> [<span class="st">"1MS"</span>,<span class="st">"2MS"</span>,<span class="st">"12MS"</span>])</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"sales_deseasonalised"</span>].plot(marker <span class="op">=</span> <span class="st">"."</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>lag_df_fe <span class="op">=</span> lag_trans.fit_transform(raw_df.copy()) </span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"Deseasonlalized data with outliers"</span>)</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="outliers_files/figure-html/plot_deseason-3.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-</section>
-<section id="identify-outliers" class="level2">
-<h2 class="anchored" data-anchor-id="identify-outliers">Identify outliers</h2>
-<section id="rolling-mean-and-standard-deviation" class="level3">
-<h3 class="anchored" data-anchor-id="rolling-mean-and-standard-deviation">Rolling mean and standard deviation</h3>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>raw_df[[<span class="st">"roll_mean"</span>,<span class="st">"roll_std"</span>]] <span class="op">=</span> (</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>                </span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>                raw_df[<span class="st">"sales_deseasonalised"</span>]</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>                .rolling(window <span class="op">=</span> <span class="dv">13</span>,center <span class="op">=</span> <span class="va">True</span>, min_periods <span class="op">=</span> <span class="dv">1</span>)</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>                .agg({<span class="st">"roll_mean"</span>:<span class="st">"mean"</span>, <span class="st">"roll_std"</span>:<span class="st">"std"</span>})</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>margin_factor <span class="op">=</span> <span class="dv">3</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"upper"</span>] <span class="op">=</span> raw_df[<span class="st">"roll_mean"</span>] <span class="op">+</span> margin_factor <span class="op">*</span> raw_df[<span class="st">"roll_std"</span>]</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"lower"</span>] <span class="op">=</span> raw_df[<span class="st">"roll_mean"</span>] <span class="op">-</span> margin_factor <span class="op">*</span> raw_df[<span class="st">"roll_std"</span>]</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"is_outlier"</span>] <span class="op">=</span> np.<span class="bu">abs</span>((raw_df[<span class="st">"sales_deseasonalised"</span>] <span class="op">&lt;=</span> raw_df[<span class="st">"lower"</span>]) <span class="op">|</span></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>                              (raw_df[<span class="st">"sales_deseasonalised"</span>] <span class="op">&gt;=</span> raw_df[<span class="st">"upper"</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>plt.clf()</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> raw_df[<span class="st">"sales_deseasonalised"</span>].plot()</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"upper"</span>].plot(ax <span class="op">=</span> ax, color <span class="op">=</span> <span class="st">"black"</span>, linestyle <span class="op">=</span> <span class="st">"dashed"</span>)</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>raw_df.loc[raw_df[<span class="st">"is_outlier"</span>],<span class="st">"sales_deseasonalised"</span>].plot(ax <span class="op">=</span> ax,</span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>                                                             color <span class="op">=</span> <span class="st">"red"</span>,</span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>                                                             marker <span class="op">=</span> <span class="st">"o"</span>,</span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>                                                             linestyle <span class="op">=</span> <span class="st">"none"</span>)</span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="outliers_files/figure-html/plot_outlier_mean-5.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-</section>
-<section id="rolling-median-and-median-absolute-deviation" class="level3">
-<h3 class="anchored" data-anchor-id="rolling-median-and-median-absolute-deviation">Rolling median and median absolute deviation</h3>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> mad(x):</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> np.median(np.<span class="bu">abs</span>(x <span class="op">-</span> np.median(x)))</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>raw_df[[<span class="st">"roll_median"</span>,<span class="st">"roll_mad"</span>]] <span class="op">=</span> (</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>                </span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>                raw_df[<span class="st">"sales_deseasonalised"</span>]</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>                .rolling(window <span class="op">=</span> <span class="dv">13</span>,center <span class="op">=</span> <span class="va">True</span>, min_periods <span class="op">=</span> <span class="dv">1</span>)</span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>                .agg({<span class="st">"roll_median"</span>:<span class="st">"median"</span>, <span class="st">"roll_mad"</span>:mad})</span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>margin_factor <span class="op">=</span> <span class="dv">3</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"upper_2"</span>] <span class="op">=</span> raw_df[<span class="st">"roll_median"</span>] <span class="op">+</span> margin_factor <span class="op">*</span> raw_df[<span class="st">"roll_mad"</span>]</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"lower_2"</span>] <span class="op">=</span> raw_df[<span class="st">"roll_median"</span>] <span class="op">-</span> margin_factor <span class="op">*</span> raw_df[<span class="st">"roll_mad"</span>]</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"is_outlier_2"</span>] <span class="op">=</span> np.<span class="bu">abs</span>((raw_df[<span class="st">"sales_deseasonalised"</span>] <span class="op">&lt;=</span> raw_df[<span class="st">"lower_2"</span>]) <span class="op">|</span></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>                              (raw_df[<span class="st">"sales_deseasonalised"</span>] <span class="op">&gt;=</span> raw_df[<span class="st">"upper_2"</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>plt.clf()</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> raw_df[<span class="st">"sales_deseasonalised"</span>].plot()</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"upper_2"</span>].plot(ax <span class="op">=</span> ax, color <span class="op">=</span> <span class="st">"black"</span>, linestyle <span class="op">=</span> <span class="st">"dashed"</span>)</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"lower_2"</span>].plot(ax <span class="op">=</span> ax, color <span class="op">=</span> <span class="st">"black"</span>, linestyle <span class="op">=</span> <span class="st">"dashed"</span>)</span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>raw_df.loc[raw_df[<span class="st">"is_outlier_2"</span>],<span class="st">"sales_deseasonalised"</span>].plot(ax <span class="op">=</span> ax,</span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>                                                             color <span class="op">=</span> <span class="st">"red"</span>,</span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>                                                             marker <span class="op">=</span> <span class="st">"o"</span>,</span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>                                                             linestyle <span class="op">=</span> <span class="st">"none"</span>)</span>
-<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="outliers_files/figure-html/plot_outlier_median-7.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-</section>
-</section>
-<section id="impute-outliers" class="level2">
-<h2 class="anchored" data-anchor-id="impute-outliers">Impute outliers</h2>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"sales_na"</span>] <span class="op">=</span> raw_df[<span class="st">"sales_deseasonalised"</span>]</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>raw_df.loc[raw_df[<span class="st">"is_outlier_2"</span>],<span class="st">"sales_na"</span>] <span class="op">=</span> np.nan</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"sales_imputed"</span>] <span class="op">=</span> raw_df[<span class="st">"sales_na"</span>].interpolate(method <span class="op">=</span> <span class="st">"time"</span>,</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>                                                         inlace <span class="op">=</span> <span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>plt.clf()</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> raw_df[<span class="st">"sales_imputed"</span>].plot()</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>raw_df.loc[raw_df[<span class="st">"is_outlier_2"</span>],<span class="st">"sales_imputed"</span>].plot(ax <span class="op">=</span> ax,</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>                                                      alpha <span class="op">=</span> <span class="fl">0.5</span>,</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>                                                      color <span class="op">=</span> <span class="st">"red"</span>,</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>                                                      marker <span class="op">=</span> <span class="st">"o"</span>,</span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>                                                      linestyle <span class="op">=</span> <span class="st">"none"</span>)</span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"Imputed outliers"</span>)</span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="outliers_files/figure-html/plot_imputed_outlier-9.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(lag_df_fe.head())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>             sales  sales_lag_1MS  sales_lag_2MS  sales_lag_12MS
+date                                                            
+1992-01-01  146376            NaN            NaN             NaN
+1992-02-01  147079       146376.0            NaN             NaN
+1992-03-01  159336       147079.0       146376.0             NaN
+1992-04-01  163669       159336.0       147079.0             NaN
+1992-05-01  170068       163669.0       159336.0             NaN</code></pre>
 </div>
 </div>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

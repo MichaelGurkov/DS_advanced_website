@@ -58,7 +58,6 @@ for temp_lag in [1,2,12]:
 
 ```
 
-
 ```{python plot_lags}
 
 plt.clf()
@@ -66,7 +65,6 @@ lag_df.plot(alpha = 0.5)
 plt.show()
 
 ```
-
 
 ### feature_engine implementation
 
@@ -79,4 +77,3 @@ lag_df_fe = lag_trans.fit_transform(raw_df.copy())
 print(lag_df_fe.head())
 
 ```
-

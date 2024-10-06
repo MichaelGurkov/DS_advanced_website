@@ -1,0 +1,135 @@
+---
+title: "Autocorrelation"
+---
+
+```{r set_up_python, echo=FALSE}
+#|echo: FALSE
+
+if (Sys.getenv("USERPROFILE") == "C:\\Users\\internet"){
+  
+  python_path = paste0("C:\\Users\\internet\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+} else {
+  
+  python_path = paste0("C:\\Users\\Home\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+}
+
+reticulate::use_python(python_path)
+
+```
+
+```{python}
+
+import numpy as np
+
+import pandas as pd
+
+import matplotlib.pyplot as plt
+
+import os 
+
+from statsmodels.tsa.stattools import acf, pacf
+
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+
+from statsmodels.tsa.seasonal import STL
+
+```
+
+
+```{python import_data}
+
+file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_retail_sales.csv"
+
+raw_df = pd.read_csv(file_path,index_col = "date")
+
+raw_df.index = pd.to_datetime(raw_df.index)
+
+
+```
+
+```{python stl_decomposition}
+
+decompostion_df = raw_df.copy()
+
+stl_decomp = STL(endog = decompostion_df["sales"], period = 12, seasonal = 7,
+                 robust = True).fit()
+                 
+decompostion_df["trend"] = stl_decomp.trend
+
+decompostion_df["seasonality"] = stl_decomp.seasonal
+
+decompostion_df["remainder"] = stl_decomp.resid
+
+
+```
+
+# Trend
+
+++ explain that we expect to see a high autocorrelation with a high inertia in case of trend presence.
+
+
+```{python trend_acf}
+
+plot_acf(decompostion_df["trend"], title = "Trend Autocorrelation")
+
+plt.show()
+
+```
+
+
+```{python trend_pacf}
+
+plot_pacf(decompostion_df["trend"], title = "Trend Partial Autocorrelation")
+
+plt.show()
+
+```
+
+
+# Seasonality
+
+++ explain that we expect to see high autocorrelation at a corresponding lags if there is seasonality present
+
+
+```{python seasonality_acf}
+
+plot_acf(decompostion_df["seasonality"], title = "Seasonality Autocorrelation")
+
+plt.show()
+
+```
+
+
+```{python seasonality_pacf}
+
+plot_pacf(decompostion_df["seasonality"], title = "Seasonality Partial Autocorrelation")
+
+plt.show()
+
+```
+
+
+# Remainder ("white noise")
+
+++ explain that we expect to see no autocorrelation in a white noise series. If the decomposition is good enough than the remainder should resemble white noise
+
+```{python remainder_acf}
+
+plot_acf(decompostion_df["remainder"], title = 'Remainder ("white noise") Autocorrelation')
+
+plt.show()
+
+```
+
+
+```{python remainder_pacf}
+
+plot_pacf(decompostion_df["remainder"],
+title = 'Remainder ("white noise") Partial Autocorrelation')
+
+plt.show()
+
+```
+
