@@ -25,18 +25,23 @@ import numpy as np
 
 import pandas as pd
 
-import matplotlib.pyplot as plt
-
 import os 
 
-from statsmodels.tsa.stattools import acf, pacf
+from statsmodels.tsa.stattools import acf, pacf, ccf
 
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 
 from statsmodels.tsa.seasonal import STL
 
-```
+# plotting libraries
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from matplotlib.ticker import MaxNLocator
 
+
+```
 
 ```{python import_data}
 
@@ -69,7 +74,6 @@ decompostion_df["remainder"] = stl_decomp.resid
 
 ++ explain that we expect to see a high autocorrelation with a high inertia in case of trend presence.
 
-
 ```{python trend_acf}
 
 plot_acf(decompostion_df["trend"], title = "Trend Autocorrelation")
@@ -77,7 +81,6 @@ plot_acf(decompostion_df["trend"], title = "Trend Autocorrelation")
 plt.show()
 
 ```
-
 
 ```{python trend_pacf}
 
@@ -87,11 +90,9 @@ plt.show()
 
 ```
 
-
 # Seasonality
 
 ++ explain that we expect to see high autocorrelation at a corresponding lags if there is seasonality present
-
 
 ```{python seasonality_acf}
 
@@ -101,7 +102,6 @@ plt.show()
 
 ```
 
-
 ```{python seasonality_pacf}
 
 plot_pacf(decompostion_df["seasonality"], title = "Seasonality Partial Autocorrelation")
@@ -109,7 +109,6 @@ plot_pacf(decompostion_df["seasonality"], title = "Seasonality Partial Autocorre
 plt.show()
 
 ```
-
 
 # Remainder ("white noise")
 
@@ -123,13 +122,105 @@ plt.show()
 
 ```
 
-
 ```{python remainder_pacf}
 
 plot_pacf(decompostion_df["remainder"],
 title = 'Remainder ("white noise") Partial Autocorrelation')
 
 plt.show()
+
+```
+
+
+# Cross correlations
+
+```{python helper_functions}
+
+def plot_ccf(x, y, lags):
+    # Compute CCF and confidence interval
+    cross_corrs = ccf(x, y)
+    ci = 2 / np.sqrt(len(y))
+    # Create plot
+    fig, ax = plt.subplots(figsize=[10, 5])
+    ax.stem(range(0, lags + 1), cross_corrs[: lags + 1])
+    ax.fill_between(range(0, lags + 1), ci, y2=-ci, alpha=0.2)
+    ax.set_title("Cross-correlation")
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    return ax
+
+
+def lag_plot(x, y, lag, ax=None):
+    if ax is None:
+        fig, ax = plt.subplots(figsize=[5, 5])
+    ax.scatter(y=y, x=x.shift(periods=lag), s=10)
+    ax.set_ylabel("$y_t$")
+    ax.set_xlabel(f"$x_{{t-{lag}}}$")
+    return ax
+
+
+
+```
+
+```{python make_white_noise}
+
+num_periods = 1000
+
+np.random.seed(123)
+
+x = np.random.normal(loc = 0, scale = 1, size = num_periods)
+
+y = np.random.normal(loc = 0, scale = 1,size = num_periods)
+
+time_index = pd.date_range(start = "2000-01-01", periods = num_periods)
+
+ccf_df = pd.DataFrame(data = {"x":x,"y":y}, index = time_index)
+
+del x, y ,time_index, num_periods
+
+
+```
+
+```{python plot_white_noise}
+
+fig, axes = plt.subplots(nrows = 2)
+
+ccf_df["x"].plot(y = "x",ax = axes[0])
+
+ccf_df["y"].plot(y = "y",ax = axes[1])
+
+plt.tight_layout()
+
+plt.subplots_adjust(hspace=0.5)
+
+plt.show()
+
+
+```
+
+```{python plot_ccf}
+
+plot_ccf(ccf_df["y"], ccf_df["x"], lags = 25)
+
+plt.show()
+```
+
+## Real world data
+
+```{python import_data}
+
+file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_air_passengers.csv"
+
+passengers_df = pd.read_csv(file_path,index_col = "date")
+
+passengers_df.index = pd.to_datetime(passengers_df.index)
+
+sales_df = raw_df.copy()
+
+del file_path
+
+
+df = pd.DataFrame(data = {"passengers": passengers_df["passengers"].iloc[0:120],
+                          "sales": sales_df["sales"].iloc[0:120]})
 
 ```
 
