@@ -81,7 +81,7 @@ plt.show()
 
 ```{python trend_pacf}
 
-plot_pacf(decompostion_df["trend"], title = "Trend Partial Autocorrelation")
+plot_pacf(decompostion_df["trend"], title = "Trend Partial Autocorrelation", method = "ywmle")
 
 plt.show()
 
@@ -104,7 +104,7 @@ plt.show()
 
 ```{python seasonality_pacf}
 
-plot_pacf(decompostion_df["seasonality"], title = "Seasonality Partial Autocorrelation")
+plot_pacf(decompostion_df["seasonality"], title = "Seasonality Partial Autocorrelation", method = "ywmle")
 
 plt.show()
 
@@ -127,7 +127,7 @@ plt.show()
 ```{python remainder_pacf}
 
 plot_pacf(decompostion_df["remainder"],
-title = 'Remainder ("white noise") Partial Autocorrelation')
+title = 'Remainder ("white noise") Partial Autocorrelation', method = "ywmle")
 
 plt.show()
 
