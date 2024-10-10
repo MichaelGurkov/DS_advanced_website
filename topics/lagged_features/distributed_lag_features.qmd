@@ -28,7 +28,7 @@ import pandas as pd
 import os 
 
 
-
+from statsmodels.tsa.seasonal import MSTL
 
 # plotting libraries
 import matplotlib.pyplot as plt
@@ -53,7 +53,7 @@ raw_df = raw_df.drop(columns = ["Date_Time"]).copy()
 
 ```
 
-```{python}
+```{python plot_raw_data}
 
 fig, axes = plt.subplots(nrows = 2)
 
@@ -89,9 +89,7 @@ calendar_df["day_of_week"] = calendar_df.index.day_of_week
 
 ### Daily seasonality
 
-++ explain that we see a pattern and that means that the time of day has an
-effect on the expected value. That means that we should include a lag of 24 hours
-that will represent the value of the previous observation at the same hour.
+++ explain that we see a pattern and that means that the time of day has an effect on the expected value. That means that we should include a lag of 24 hours that will represent the value of the previous observation at the same hour.
 
 ```{python hourly_seasonality}
 
@@ -111,12 +109,9 @@ plt.show()
 
 ```
 
-
 ### Yearly seasonality
 
-++ explain that we see a pattern and that means that the month has an
-effect on the expected value. That means that we should include a lag of 24 hours * 365 days that will represent the value of the previous observation at the same month.
-
+++ explain that we see a pattern and that means that the month has an effect on the expected value. That means that we should include a lag of 24 hours \* 365 days that will represent the value of the previous observation at the same month.
 
 ```{python monthly_seasonality}
 
@@ -135,7 +130,6 @@ plt.tight_layout(h_pad=3)
 plt.show()
 
 ```
-
 
 # Feature selection
 
@@ -183,7 +177,6 @@ feature_importance.abs().nlargest(5)
 
 ```
 
-
 # Correlation methods
 
 ```{python import_correlation_libraries}
@@ -195,7 +188,10 @@ from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 
 ```
 
-```{python}
+++ explain that pacf depends on stationarity (lack of trend and seasonality). Our data has trend and seasonality so it's not stationary. We will detrend and deseasonalize the data later on
+
+
+```{python plot_acf_and_pacf}
 
 
 fig, axes = plt.subplots(ncols = 2)
@@ -206,7 +202,7 @@ ax  = axes[0], lags = 100, marker = ".")
 plot_pacf(raw_df["CO_sensor"].copy(),
 ax  = axes[1], lags = 25, marker = ".")
 
-plt.title("CO_sensor")
+fig.suptitle("CO_sensor ACF and PACF", fontsize=16)
 
 plt.tight_layout(w_pad = 3)
 
@@ -214,3 +210,49 @@ plt.show()
 
 ```
 
+## Detrend and deseasonalize
+
+```{python decompose_mstl}
+
+resid_df = raw_df.copy()
+
+for temp_col in resid_df.columns:
+  mstl_decomp = MSTL(endog = resid_df[temp_col], periods = [24, 7*24]).fit()
+  resid_df[temp_col + "_resid"] = mstl_decomp.resid
+
+
+
+```
+
+```{python plot_residuals}
+
+fig, axes = plt.subplots(nrows = 2)
+
+resid_df["CO_sensor_resid"].plot(ax = axes[0], title = "CO_sensor_resid", xlabel = '')
+
+resid_df["RH_resid"].plot(ax = axes[1], title = "RH_resid", xlabel = '')
+
+plt.tight_layout(h_pad=3)
+
+plt.show()
+
+```
+
+```{python plot_acf_and_pacf_resid}
+
+
+fig, axes = plt.subplots(ncols = 2)
+
+plot_acf(resid_df["CO_sensor_resid"].copy(),
+ax  = axes[0], lags = 100, marker = ".")
+
+plot_pacf(resid_df["CO_sensor_resid"].copy(),
+ax  = axes[1], lags = 25, marker = ".")
+
+fig.suptitle("CO_sensor residual ACF and PACF", fontsize=16)
+
+plt.tight_layout(w_pad = 3)
+
+plt.show()
+
+```

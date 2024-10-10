@@ -131,7 +131,6 @@ plt.show()
 
 ```
 
-
 # Cross correlations
 
 ```{python helper_functions}
@@ -206,7 +205,7 @@ plt.show()
 
 ## Real world data
 
-```{python import_data}
+```{python import_passengers_data}
 
 file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_air_passengers.csv"
 
@@ -223,4 +222,5 @@ df = pd.DataFrame(data = {"passengers": passengers_df["passengers"].iloc[0:120],
                           "sales": sales_df["sales"].iloc[0:120]})
 
 ```
+
 

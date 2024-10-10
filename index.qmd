@@ -22,3 +22,12 @@ title: "DS_advanced_website"
    -  [**STL decomposition**](topics/ts_decomposition/stl_decomp.qmd)
 
 -  [**Missing data imputation**]()
+   -   [**Missing data imputation**](topics/na_imputation/na_imputation.qmd)
+-  [**Outliers**]()
+   -   [**Outliers**](topics/outliers/outliers.qmd)
+-  [**Lagged features**]()
+   -  [**lagged_features**](topics/lagged_features/lagged_features.qmd)
+   -  [**lag_plots**](topics/lagged_features/lag_plots.qmd)
+   -  [**auto_correlation**](topics/lagged_features/auto_correlation.qmd)
+   -  [**ar_process**](topics/lagged_features/ar_process.qmd)
+   -  [**distributed_lag_features**](topics/lagged_features/distributed_lag_features.qmd)
