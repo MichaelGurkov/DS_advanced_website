@@ -31,3 +31,5 @@ title: "DS_advanced_website"
    -  [**auto_correlation**](topics/lagged_features/auto_correlation.qmd)
    -  [**ar_process**](topics/lagged_features/ar_process.qmd)
    -  [**distributed_lag_features**](topics/lagged_features/distributed_lag_features.qmd)
+-  [**Window features**]()
+   -  [**window_features**](topics/window_features/window_features.qmd)

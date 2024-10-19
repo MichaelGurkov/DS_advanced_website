@@ -67,7 +67,6 @@ plt.show()
 
 ```
 
-
 ```{python plot_subset_of_demand}
 
 plt.clf()
@@ -78,6 +77,7 @@ plt.show()
 
 ```
 
+### Rolling windows
 ++ explain that the data set seems to have seasonality on different (daily, weekly, yearly) time scales and we'll use window features to extract and capture this information
 
 ```{python pandas_implementation}
@@ -107,7 +107,9 @@ win_df_fe = win_fe_trans.fit_transform(raw_df.copy())
 
 plt.clf()
 
-win_df_fe.filter(regex = "demand_window_[0-9]+(_mean)+").columns
+col_names = win_df_fe.filter(regex = "demand_window_[0-9]+(_mean)+").columns
+
+win_df_fe[col_names].plot()
 
 plt.show()
 
@@ -137,7 +139,6 @@ win_df_fe_exp = win_fe_trans_exp.fit_transform(raw_df.loc["2015":].copy())
 
 ```
 
-
 ### Exponential weights
 
 ```{python }
@@ -154,7 +155,6 @@ def exp_weighted_mean(x, alpha = 0.05):
   return result
 
 ```
-
 
 ```{python weighted_mean_demand}
 
@@ -173,8 +173,9 @@ weight_df.dropna(inplace = True)
 
 ```
 
+```{python plot_exponential_weights_df}
 
-```{python }
+plt.clf()
 
 weight_df.plot()
 
@@ -182,10 +183,7 @@ plt.show()
 
 ```
 
-
-
-
-```{python}
+```{python import_feature_engine_functions}
 
 from feature_engine.timeseries.forecasting import LagFeatures, WindowFeatures, ExpandingWindowFeatures
 from feature_engine.imputation import DropMissingData
@@ -194,7 +192,7 @@ from sklearn.preprocessing import StandardScaler
 
 ```
 
-```{python }
+```{python set_transformation_pipeline}
 # Lag features
 lag_transformer = LagFeatures(variables=["demand", "temperature"],
                               periods=[1, 2, 3, 24, 24 * 7])
@@ -245,7 +243,44 @@ X = processed_df.drop(columns = ["demand"]).copy()
 
 y = processed_df["demand"]
 
-X = StandardScaler().fit_transform(X)
+X_mat = StandardScaler().fit_transform(X)
+
+lasso_model = Lasso(alpha = 1)
+
+lasso_model.fit(X,y)
+
+```
+
+
+```{python plot_features}
+
+selected_features = pd.DataFrame({"feature_names":X.columns,
+                                  "values":lasso_model.coef_})
+                                  
+selected_features = selected_features.sort_values("values",
+                                                  key = abs,
+                                                  ascending = False).iloc[0:10].copy()
+
+
+
+```
+
+```{python }
+
+plt.clf()
+
+plt.figure(figsize=(15, 6))
+
+selected_features.sort_values("values").plot(kind = "barh", x = "feature_names",
+                       y = "values", legend = False)
+
+plt.title("Selected features")
+
+plt.ylabel("")
+
+plt.subplots_adjust(left=0.7)
+
+plt.show()
 
 ```
 
