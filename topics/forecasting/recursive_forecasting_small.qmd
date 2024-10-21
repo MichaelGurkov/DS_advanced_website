@@ -1,0 +1,225 @@
+---
+title: "Recursive forecasting with lag and window feature"
+---
+
+```{r set_up_python, echo=FALSE}
+#|echo: FALSE
+
+if (Sys.getenv("USERPROFILE") == "C:\\Users\\internet"){
+  
+  python_path = paste0("C:\\Users\\internet\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+} else {
+  
+  python_path = paste0("C:\\Users\\Home\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+}
+
+reticulate::use_python(python_path)
+
+```
+
+```{python load_libraries}
+import numpy as np
+
+import pandas as pd
+
+import matplotlib.pyplot as plt
+
+import seaborn as sns
+
+import os 
+
+
+from sklearn import set_config
+
+from sklearn.base import clone
+
+from sklearn.pipeline import make_pipeline, make_union
+
+from sklearn.preprocessing import MinMaxScaler, PolynomialFeatures
+
+from sktime.transformations.series.summarize import WindowSummarizer
+
+from sktime.transformations.series.time_since import TimeSince
+
+set_config(transform_output="pandas")
+
+
+from sklearn.linear_model import LinearRegression
+
+```
+
+```{python import_data}
+
+file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_air_passengers.csv"
+
+raw_df = pd.read_csv(file_path,index_col = "date")
+
+raw_df.index = pd.to_datetime(raw_df.index)
+
+```
+
+# Split data
+
+```{python split_train_test_data}
+
+split_date = pd.to_datetime("1960-01-01")
+
+train_set = raw_df.loc[raw_df.index <= split_date].copy()
+
+test_set = raw_df.loc[raw_df.index > split_date].copy()
+
+```
+
+# Feature engineering
+
+```{python set_basic_pipeline}
+
+target = ["passengers"]
+
+
+basic_pipeline = WindowSummarizer(lag_feature = {"lag":[1],
+                                                      "mean":[[1,2]]},
+                                       target_cols = target,
+                                       truncate = "bfill")
+                                       
+basic_pipeline = make_pipeline(basic_pipeline)
+
+
+```
+
+```{python preprocess_train_set}
+
+y_train = train_set[target]
+
+X_train = basic_pipeline.fit_transform(train_set)
+
+```
+
+# Forecast
+
+++ explain that in order to make a forecast our features (predictors) vector should include information up to the previous period (lag 1) of the forecasting point. That means that are able to construct a features vector for the next period of the available information. Since our train set ends on '1960-01-01', we can construct the features vector for '1960-02-01' and forecast the number of passengers on this date. Then we can extend our dataset, construct a features vector for '1960-03-01', forecast the passengers number and keep going.
+
+++ in this section we encapsulate the code to make the features vec. The code starts with 'predictors_data' - the dataset that has the available information and construct a feature_vector that will be used as predictors for next period
+
+```{python make_features_vec}
+
+predictors_data = train_set.copy()
+
+next_period = predictors_data.index.shift(freq = "MS").max()
+
+features_vec = pd.concat([predictors_data.copy(),
+                          pd.DataFrame(index = [next_period])])
+
+features_vec = basic_pipeline.fit_transform(features_vec)
+
+features_vec = features_vec.loc[features_vec.index == next_period]
+
+```
+
+```{python }
+
+lin_reg = LinearRegression()
+
+lin_reg.fit(X_train, y_train)
+
+```
+
+
+
+++ in this section we encapsulate the code to forecast the target for next period and append the 'predictors_data' to make 'new_predictors_data'. Then, we can iterate throught the process to produce recursive forecast.
+
+```{python predict_next_value}
+
+y_pred = lin_reg.predict(features_vec)
+
+y_pred = pd.DataFrame(data = y_pred,
+                      index = [next_period],
+                      columns = ["passengers"])
+
+new_predictors_data = pd.concat([predictors_data.copy(), y_pred], axis = 0)
+
+```
+
+```{python auxilary_functions}
+
+def preprocess_data(raw_dataset):
+  
+  target = ["passengers"]
+
+  basic_pipeline = WindowSummarizer(lag_feature = {"lag":[1],
+                                                        "mean":[[1,2]]},
+                                         target_cols = target,
+                                         truncate = "bfill")
+                                         
+  basic_pipeline = make_pipeline(basic_pipeline)
+  
+  y_vec = raw_dataset[target]
+
+  X_mat = basic_pipeline.fit_transform(raw_dataset)
+  
+  return [y_vec, X_mat]
+
+
+
+
+def make_features_vec(predictors_data):
+  
+  next_period = predictors_data.index.shift(freq = "MS").max()
+
+  features_vec = pd.concat([predictors_data.copy(),
+                            pd.DataFrame(index = [next_period])])
+  
+  features_vec = basic_pipeline.fit_transform(features_vec)
+  
+  features_vec = features_vec.loc[features_vec.index == next_period]
+  
+  return features_vec
+
+
+
+def update_predictors_data(features_vec, model, predictors_data):
+  
+  features_vec = make_features_vec(predictors_data)
+  
+  y_pred = model.predict(features_vec)
+
+  y_pred = pd.DataFrame(data = y_pred,
+                        index = features_vec.index,
+                        columns = ["passengers"])
+  
+  new_predictors_data = pd.concat([predictors_data.copy(), y_pred], axis = 0)
+  
+  return new_predictors_data
+
+
+def make_recursive_forecast(forecast_horizon, data_set):
+  
+  y_vec, X_mat = preprocess_data(data_set)
+  
+  lin_reg = LinearRegression()
+  
+  lin_reg.fit(X_mat,y_vec)
+  
+  new_predictors_data = data_set.iloc[-3:]
+  
+  for i in range(forecast_horizon):
+    
+    new_predictors_data = update_predictors_data(features_vec = features_vec,
+                                               model = lin_reg,
+                                               predictors_data = new_predictors_data.copy())
+                                               
+  return new_predictors_data.iloc[-forecast_horizon:].copy()
+  
+    
+```
+
+```{python make_recursive_forecast}
+
+temp = make_recursive_forecast(forecast_horizon = 3,
+                               data_set = train_set.copy())
+
+print(temp)
+
+```

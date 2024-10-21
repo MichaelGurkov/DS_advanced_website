@@ -35,6 +35,9 @@ from sklearn.linear_model import LinearRegression
 
 from sklearn.tree import DecisionTreeRegressor
 
+from sklearn.ensemble import HistGradientBoostingRegressor
+
+from sklearn.metrics import root_mean_squared_error
 ```
 
 ```{python import_data}
@@ -48,7 +51,7 @@ raw_df.index = pd.to_datetime(raw_df.index)
 
 ```
 
-## Split data
+## Split data and auxiliary functions
 
 ```{python split_train_test_data}
 
@@ -66,26 +69,6 @@ X_test = raw_df[["trend"]].loc[raw_df.index > split_date]
 y_train = raw_df["passengers"].loc[raw_df.index <= split_date]
 
 y_test = raw_df["passengers"].loc[raw_df.index > split_date]
-
-
-```
-
-
-
-
-## Linear trend
-
-### Linear model
-
-```{python lin_reg_pred}
-
-lin_reg = LinearRegression()
-
-lin_reg.fit(X_train, y_train)
-
-y_pred_train_lin_reg = lin_reg.predict(X_train)
-
-y_pred_test_lin_reg = lin_reg.predict(X_test)
 
 
 ```
@@ -120,6 +103,28 @@ def plot_pred(df,pred_train, pred_test):
 
 ```
 
+
+
+
+
+
+## Linear trend
+
+### Linear model
+
+```{python lin_reg_pred}
+
+lin_reg = LinearRegression()
+
+lin_reg.fit(X_train, y_train)
+
+y_pred_train_lin_reg = lin_reg.predict(X_train)
+
+y_pred_test_lin_reg = lin_reg.predict(X_test)
+
+
+```
+
 ```{python plot_line_reg}
 
 plot_pred(df = raw_df.copy(), pred_train = y_pred_train_lin_reg,
@@ -130,7 +135,7 @@ plot_pred(df = raw_df.copy(), pred_train = y_pred_train_lin_reg,
 
 ### Tree model
 
-```{python }
+```{python tree_model}
 
 tree_model = DecisionTreeRegressor(max_depth = 1)
 
@@ -152,3 +157,89 @@ plot_pred(df = raw_df.copy(), pred_train = y_pred_train_tree,
 
 ```
 
+
+### Gradient boosting 
+
+```{python gb_model}
+
+gb_model = HistGradientBoostingRegressor()
+
+gb_model.fit(X_train, y_train)
+
+y_pred_train_gb = gb_model.predict(X_train)
+
+y_pred_test_gb = gb_model.predict(X_test)
+
+```
+
+
+```{python plot_gb}
+
+plot_pred(df = raw_df.copy(), pred_train = y_pred_train_gb,
+          pred_test = y_pred_test_gb)
+
+
+```
+
+
+
+### Rolling forecast
+
+```{python}
+
+forecast_start = raw_df.index[-1] + pd.DateOffset(months = 1)
+
+forecast_df = pd.DataFrame(index = pd.date_range(start = forecast_start,
+                                                 periods = 12,
+                                                 freq = "MS"))
+
+```
+
+
+## Nonlinear trend
+
+++explain that we add a square term in order to capture the non linear trend component. Emphasize that extrapolating non linear terms can often result overfitting and unreal forecasts
+
+```{python lin_reg_pred_square}
+
+X_train_square = X_train.copy()
+
+X_train_square["trend_sq"] = X_train_square ** 2
+
+X_test_square = X_test.copy()
+
+X_test_square["trend_sq"] = X_test_square ** 2
+
+lin_reg = LinearRegression()
+
+lin_reg.fit(X_train_square, y_train)
+
+y_pred_train_lin_reg_square = lin_reg.predict(X_train_square)
+
+y_pred_test_lin_reg_square = lin_reg.predict(X_test_square)
+
+
+```
+
+```{python plot_line_reg_square}
+
+plot_pred(df = raw_df.copy(), pred_train = y_pred_train_lin_reg_square,
+          pred_test = y_pred_test_lin_reg_square)
+
+
+```
+
+
+# Evaluation
+
+```{python }
+
+rmse_test_lin = root_mean_squared_error(y_pred_test_lin_reg, y_test)
+
+rmse_test_square = root_mean_squared_error(y_pred_test_lin_reg_square, y_test)
+
+print(f"The rmse for the test set of the linear model is {np.round(rmse_test_lin,2)} and the square term is {np.round(rmse_test_square,2)}")
+
+```
+
+## Regularization

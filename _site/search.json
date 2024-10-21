@@ -4,14 +4,14 @@
     "href": "index.html",
     "title": "DS_advanced_website",
     "section": "",
-    "text": "Introduction\n\nFeature Engineering\nForecasting\n\nForecasting\n\nForecasting pipeline\nOne step forecasting\nMultistep forecasting\n\nDirect forecasting\nRecursive forecasting\nForecasting comparison\n\n\nTime Series Decomposition\n\nTransformations\nClassical decomposition\nLOWESS decomposition\nSTL decomposition\n\nMissing data imputation\n\nMissing data imputation\n\nOutliers\n\nOutliers\n\nLagged features\n\nlagged_features\nlag_plots\nauto_correlation\nar_process\ndistributed_lag_features\n\nWindow features\n\nwindow_features"
+    "text": "Introduction\n\nFeature Engineering\nForecasting\n\nForecasting\n\nForecasting small\nForecasting pipeline\nOne step forecasting\nMultistep forecasting\n\nDirect forecasting\nRecursive forecasting\nForecasting comparison\n\n\nTime Series Decomposition\n\nTransformations\nClassical decomposition\nLOWESS decomposition\nSTL decomposition\n\nMissing data imputation\n\nMissing data imputation\n\nOutliers\n\nOutliers\n\nLagged features\n\nlagged_features\nlag_plots\nauto_correlation\nar_process\ndistributed_lag_features\n\nWindow features\n\nwindow_features"
   },
   {
     "objectID": "index.html#topics",
     "href": "index.html#topics",
     "title": "DS_advanced_website",
     "section": "",
-    "text": "Introduction\n\nFeature Engineering\nForecasting\n\nForecasting\n\nForecasting pipeline\nOne step forecasting\nMultistep forecasting\n\nDirect forecasting\nRecursive forecasting\nForecasting comparison\n\n\nTime Series Decomposition\n\nTransformations\nClassical decomposition\nLOWESS decomposition\nSTL decomposition\n\nMissing data imputation\n\nMissing data imputation\n\nOutliers\n\nOutliers\n\nLagged features\n\nlagged_features\nlag_plots\nauto_correlation\nar_process\ndistributed_lag_features\n\nWindow features\n\nwindow_features"
+    "text": "Introduction\n\nFeature Engineering\nForecasting\n\nForecasting\n\nForecasting small\nForecasting pipeline\nOne step forecasting\nMultistep forecasting\n\nDirect forecasting\nRecursive forecasting\nForecasting comparison\n\n\nTime Series Decomposition\n\nTransformations\nClassical decomposition\nLOWESS decomposition\nSTL decomposition\n\nMissing data imputation\n\nMissing data imputation\n\nOutliers\n\nOutliers\n\nLagged features\n\nlagged_features\nlag_plots\nauto_correlation\nar_process\ndistributed_lag_features\n\nWindow features\n\nwindow_features"
   },
   {
     "objectID": "topics/ts_decomposition/class_decomp.html",
