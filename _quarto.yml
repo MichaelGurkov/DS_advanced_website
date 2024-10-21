@@ -15,5 +15,7 @@ format:
     css: styles.css
     toc: true
 
-editor: visual
+execute:
+  cache: true
+  verbose: true
 
