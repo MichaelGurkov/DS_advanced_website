@@ -30,7 +30,9 @@ import seaborn as sns
 
 import os 
 
-from sklearn.pipeline import make_pipeline
+from sklearn.pipeline import Pipeline
+
+from sklearn.base import clone
 
 from sklearn.linear_model import LinearRegression
 
@@ -56,166 +58,287 @@ split_date = pd.to_datetime("1960-01-01")
 
 train_set = raw_df.loc[raw_df.index <= split_date].copy()
 
+
 test_set = raw_df.loc[raw_df.index > split_date].copy()
 
 ```
 
-# Feature engineering
+# Preprocess data
 
 ```{python set_basic_pipeline}
 
 target = ["passengers"]
 
-basic_pipeline = WindowSummarizer(lag_feature = {"lag":[1],"mean":[[1,2]]},
+win_lag_trans = WindowSummarizer(lag_feature = {"lag":[1],"mean":[[1,2]]},
                                        target_cols = target,
                                        truncate = "bfill", n_jobs=1)
 
-basic_pipeline = make_pipeline(basic_pipeline)
+basic_pipeline = Pipeline([("basic_preprocess",win_lag_trans)])
 
 
 ```
 
 ```{python preprocess_train_set, error=TRUE}
 
-y_train = train_set[target]
+y_train_processed = train_set[target]
 
 basic_pipeline.fit(train_set.copy())
 
-X_train = basic_pipeline.transform(train_set.copy())
+X_train_processed = basic_pipeline.transform(train_set.copy())
+
+
+
+```
+
+# Fit model
+
+```{python fit_model}
 
 lin_reg = LinearRegression()
 
-lin_reg.fit(X_train, y_train)
+lin_reg.fit(X_train_processed, y_train_processed)
 
 ```
 
-# Forecast
 
-++ explain that in order to make a forecast our features (predictors) vector should include information up to the previous period (lag 1) of the forecasting point. That means that are able to construct a features vector for the next period of the available information. Since our train set ends on '1960-01-01', we can construct the features vector for '1960-02-01' and forecast the number of passengers on this date. Then we can extend our dataset, construct a features vector for '1960-03-01', forecast the passengers number and keep going.
+## First point
 
-++ in this section we encapsulate the code to make the features vec. The code starts with 'predictors_data' - the dataset that has the available information and construct a feature_vector that will be used as predictors for next period
+```{python predict_first_point}
 
-```{python make_features_vec}
 
-predictors_data = train_set.copy()
+feature_source_data = train_set.copy()
 
-next_period = predictors_data.index.shift(freq = "MS").max()
+first_forecast_date = train_set.index.max() + pd.DateOffset(days = 1)
 
-features_vec = pd.concat([predictors_data.copy(),
-                          pd.DataFrame(index = [next_period])])
+feature_source_data.loc[first_forecast_date] = np.nan
 
-features_vec = basic_pipeline.transform(features_vec)
+feature_vec = basic_pipeline.transform(feature_source_data.copy())
 
-features_vec = features_vec.loc[features_vec.index == next_period]
+feature_vec = feature_vec.iloc[[len(feature_vec) - 1]].copy()
 
-```
+first_pred = lin_reg.predict(feature_vec)
 
-```{python fit_regression}
-
-# from sklearn.linear_model import LinearRegression
-# 
-# lin_reg = LinearRegression()
-# 
-# lin_reg.fit(X_train, y_train)
+manual_preds = pd.DataFrame(index = [first_forecast_date],
+                            data = first_pred)
 
 ```
 
-++ in this section we encapsulate the code to forecast the target for next period and append the 'predictors_data' to make 'new_predictors_data'. Then, we can iterate through the process to produce recursive forecast.
 
-```{python predict_next_value}
+## Second point
 
-y_pred = lin_reg.predict(features_vec)
+```{python predict_second_point}
 
-y_pred = pd.DataFrame(data = y_pred,
-                      index = [next_period],
-                      columns = ["passengers"])
+feature_source_data.loc[first_forecast_date] = first_pred
 
-new_predictors_data = pd.concat([predictors_data.copy(), y_pred], axis = 0)
+second_forecast_date = first_forecast_date + pd.DateOffset(days = 1)
+
+feature_source_data.loc[second_forecast_date] = np.nan
+
+feature_vec = basic_pipeline.transform(feature_source_data.copy())
+
+feature_vec = feature_vec.iloc[[len(feature_vec) - 1]].copy()
+
+second_pred = lin_reg.predict(feature_vec)
+
+manual_preds = pd.concat([manual_preds,pd.DataFrame(index = [second_forecast_date],
+                            data = second_pred)], axis = 0).copy()
+
+manual_preds.columns = ["passengers"]
 
 ```
+
+
+
+#Automate recursive forecast
+
 
 ```{python auxilary_functions}
 
-def preprocess_data(raw_dataset):
 
-  target = ["passengers"]
-
-  trans_pipeline = WindowSummarizer(lag_feature = {"lag":[1],
-                                                        "mean":[[1,2]]},
-                                         target_cols = target,
-                                         truncate = "bfill", n_jobs=1)
-
-  trans_pipeline = make_pipeline(trans_pipeline)
-  
-  trans_pipeline.fit(raw_dataset)
-
-  y_vec = raw_dataset[target]
-
-  X_mat = trans_pipeline.transform(raw_dataset)
-
-  return [y_vec, X_mat, trans_pipeline]
-
-
-
-
-def make_features_vec(predictors_data, trans_pipeline):
-
-  target = ["passengers"]
-
-  next_period = predictors_data.index.shift(freq = "MS").max()
-
-  features_vec = pd.concat([predictors_data.copy(),
-                            pd.DataFrame(index = [next_period])])
-
-  features_vec = trans_pipeline.transform(features_vec)
-
-  features_vec = features_vec.loc[features_vec.index == next_period]
-
-  return features_vec
-
-
-
-def update_predictors_data(model, predictors_data, trans_pipeline):
-
-  features_vec = make_features_vec(predictors_data, trans_pipeline)
-
-  y_pred = model.predict(features_vec)
-
-  y_pred = pd.DataFrame(data = y_pred,
-                        index = features_vec.index,
-                        columns = ["passengers"])
-
-  new_predictors_data = pd.concat([predictors_data.copy(), y_pred], axis = 0)
-
-  return new_predictors_data
-
-
-def make_recursive_forecast(forecast_horizon, data_set):
-
-  y_vec, X_mat, trans_pipeline = preprocess_data(data_set)
-
-  lin_reg = LinearRegression()
-
-  lin_reg.fit(X_mat,y_vec)
-
-  new_predictors_data = data_set.iloc[-3:].copy()
-
-  for i in range(forecast_horizon):
-
-    new_predictors_data = update_predictors_data(model = lin_reg,
-                                                 predictors_data = new_predictors_data.copy(),
-                                                 trans_pipeline = trans_pipeline)
-
-  return new_predictors_data.iloc[-forecast_horizon:].copy()
-
+def make_recursive_forecast(forecast_horizon,X_train, y_train,
+                            model, preprocess_pipe):
     
+    # Preprocess data and fit model
+    
+    feature_source_data, model_spec,preprocess_pipe_spec = \
+    preprocess_data_and_fit_model(X_mat = X_train.copy(),
+                    Y_mat = y_train.copy(),
+                    model_spec = model,
+                    preprocess_pipe_spec = preprocess_pipe)
+                    
+    
+     
+                    
+    # Make next prediction
+    
+    next_pred = predict_next_point(feature_source_data = feature_source_data,
+                              model_spec = model_spec,
+                              preprocess_pipe_spec = preprocess_pipe_spec)
+                              
+    predictions_df = next_pred.copy()                          
+    
+    # Update feature_source_data and iterate
+    
+    for step in range(1, forecast_horizon):
+    
+      feature_source_data = pd.concat([feature_source_data.copy(),
+                                       next_pred], axis = 0)
+                                       
+      next_pred = predict_next_point(feature_source_data = feature_source_data,
+                                model_spec = model_spec,
+                                preprocess_pipe_spec = preprocess_pipe_spec)
+                                
+      predictions_df = pd.concat([predictions_df.copy(), next_pred],
+                                  axis = 0)
+                                  
+    
+    return predictions_df
+    
+    
+ 
+def preprocess_data_and_fit_model(X_mat, Y_mat,preprocess_pipe_spec, model_spec):
+  
+  preprocess_pipe_spec.fit(X_mat.copy())
+  
+  X_mat_processed = preprocess_pipe_spec.transform(X_mat.copy())
+
+  Y_mat_processed = Y_mat.loc[X_mat_processed.index].copy()
+  
+  model_spec.fit(X_mat_processed,Y_mat_processed)
+  
+  feature_source_data = X_mat.copy()
+  
+  return([feature_source_data, model_spec,preprocess_pipe_spec])
+
+
+def predict_next_point(feature_source_data,model_spec,preprocess_pipe_spec):
+  
+  forecast_index = feature_source_data.index.max() + pd.DateOffset(months = 1)
+  
+  forecast_index_row = pd.DataFrame(data = np.nan,
+                              index = [forecast_index],
+                              columns = ["passengers"])
+                              
+  feature_source_data = pd.concat([feature_source_data.copy(),
+                                forecast_index_row], axis = 0)
+                                
+  feature_vec = preprocess_pipe_spec.transform(feature_source_data)
+  
+  feature_vec = feature_vec.iloc[[len(feature_vec) - 1]].copy()
+  
+  predictions = model_spec.predict(feature_vec)
+  
+  predictions_df = pd.DataFrame(data = predictions,
+                              index = [forecast_index],
+                              columns = ["passengers"])
+  
+  return predictions_df
+
 ```
 
-```{python make_recursive_forecast}
 
-temp = make_recursive_forecast(forecast_horizon = 3,
-                               data_set = train_set.copy())
+```{python make_predictions}
 
-print(temp)
+
+predictions_for_10_days = make_recursive_forecast(forecast_horizon = 10,
+                                               X_train = train_set.copy(),
+                                               y_train = train_set.copy(),
+                                               model = LinearRegression(),
+                                               preprocess_pipe = clone(basic_pipeline))
+                               
+print(predictions_for_10_days.tail())
+
 
 ```
+
+
+```{python test_for_equality}
+
+print(f"Manual predictions are equal to automatic predicitons: {manual_preds.equals(predictions_for_10_days.iloc[0:2])}")
+
+
+```
+
+
+# Advanced preprocessing
+
+
+```{python import_advanced_libraries}
+
+from sklearn.preprocessing import MinMaxScaler, PolynomialFeatures
+
+from sktime.transformations.series.time_since import TimeSince
+
+```
+
+
+
+```{python define_advanced_preprocessing}
+
+from sklearn.pipeline import make_union
+
+from sklearn import set_config
+
+set_config(transform_output="pandas")
+
+target = ["passengers"]
+
+trend_adv = TimeSince(freq="MS")
+
+poly_adv = PolynomialFeatures(degree=2, include_bias=False)
+
+win_lag_adv = WindowSummarizer(
+    lag_feature={
+        "lag": [1, 2, 3, 12],
+        "mean": [[1, 12]],
+    },
+    target_cols=target,
+    truncate="bfill", n_jobs = 1
+)
+
+#advanced_union = make_union(trend_adv, poly_adv, win_lag_adv)
+
+advanced_union = make_union(trend_adv, win_lag_adv)
+
+# Apply scaling afterward
+advanced_pipeline = Pipeline([
+    ("union", advanced_union),        # Independent transformations
+    ("normalize", MinMaxScaler())     # Scaling applied to the combined output
+])
+
+
+del trend_adv, poly_adv, win_lag_adv
+
+```
+
+
+```{python split_train_test_advanced}
+
+advanced_split_point = pd.to_datetime("1955-10-01")
+
+train_set_adv = raw_df.loc[raw_df.index <= advanced_split_point].copy()
+
+test_set_adv = raw_df.loc[raw_df.index > advanced_split_point].copy()
+
+adv_predictions = make_recursive_forecast(forecast_horizon = 36,
+                                          X_train = train_set_adv.copy(),
+                                          y_train = train_set_adv.copy(),
+                                          model = LinearRegression(),
+                                          preprocess_pipe = clone(advanced_pipeline))
+
+
+```
+
+```{python evaluation}
+
+comparison_df = test_set_adv.copy().join(adv_predictions.copy(), how = "inner",
+                         lsuffix='_actual', rsuffix='_pred')
+
+
+comparison_df.plot()
+
+plt.show()
+
+
+```
+

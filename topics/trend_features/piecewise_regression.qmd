@@ -1,0 +1,94 @@
+---
+title: "Piecewise linear regression"
+---
+
+```{r set_up_python, echo=FALSE}
+#|echo: FALSE
+
+if (Sys.getenv("USERPROFILE") == "C:\\Users\\internet"){
+  
+  python_path = paste0("C:\\Users\\internet\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+} else {
+  
+  python_path = paste0("C:\\Users\\Home\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+}
+
+reticulate::use_python(python_path)
+
+```
+
+```{python load_libraries}
+
+import numpy as np
+
+import pandas as pd
+
+import matplotlib.pyplot as plt
+
+import seaborn as sns
+
+import os 
+
+from sklearn.linear_model import LinearRegression
+
+from sktime.transformations.series.time_since import TimeSince
+
+from sklearn.metrics import root_mean_squared_error
+```
+
+```{python import_data}
+
+file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_retail_sales.csv"
+
+raw_df = pd.read_csv(file_path,index_col = "date")
+
+raw_df.index = pd.to_datetime(raw_df.index)
+
+
+```
+
+```{python plot_with_changepoints}
+
+plt.clf()
+
+fig, ax = plt.subplots(figsize=[10, 5])
+
+raw_df.plot(y="sales", marker=".", figsize=[10, 5], legend=None, ax=ax)
+
+# ax.set_xlabel("Time")
+# 
+# ax.set_ylabel("Retail Sales")
+# 
+# ax.set_title("Retail Sales")
+
+ax.vlines(
+    ["2008-01-01", "2009-04-01"],
+    ymin=raw_df["sales"].min(),
+    ymax=raw_df["sales"].max(),
+    color="r",
+    alpha=0.5,
+)
+
+plt.tight_layout()
+
+plt.show()
+
+```
+
+```{python define_changepoins}
+
+changepoins = [
+  "2008-01-01", # first changepoint
+  "2009-04-01"  # second changepoint
+  ]
+  
+changepoints_trans = TimeSince(start = changepoins,
+                               positive_only = True,
+                               keep_original_columns = True)
+                               
+X_train_processed = changepoints_trans.fit_transform(raw_df.copy())
+
+```
+

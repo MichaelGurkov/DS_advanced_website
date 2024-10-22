@@ -282,7 +282,7 @@ def make_recursive_forecast(forecast_horizon,X_train, Y_train,
     feature_source_data, model_spec,preprocess_pipe_spec = \
     preprocess_data_and_fit_model(X_mat = X_train.copy(),
                     Y_mat = Y_train.copy(),
-                    model_spec = MultiOutputRegressor(Lasso()),
+                    model_spec = model),
                     preprocess_pipe_spec = preprocess_pipe)
                     
     
