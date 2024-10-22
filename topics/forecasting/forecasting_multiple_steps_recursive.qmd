@@ -1,6 +1,9 @@
 ---
 title: "Forecasting multiple periods (steps) ahead - recursive approach"
 ---
+## Introduction
+
+In this tutorial, we will explore how to forecast multiple periods ahead using a recursive approach for time series data. The recursive approach involves forecasting one step at a time: after predicting the next step, we update the input data to reflect this new forecast before predicting the following step. This method is particularly useful for time series forecasting tasks where we aim to predict several future steps based on historical data. We will walk through the entire process, from feature engineering and model training to the recursive forecasting method, utilizing a practical dataset related to air quality measurements.
 
 ```{r set_up_python, echo=FALSE}
 #|echo: FALSE
@@ -19,7 +22,7 @@ reticulate::use_python(python_path)
 
 ```
 
-```{python}
+```{python import_libraries}
 
 import numpy as np
 
@@ -43,13 +46,15 @@ from sklearn.metrics import root_mean_squared_error
 
 from sklearn.pipeline import Pipeline
 
+from sklearn.base import clone
+
 import matplotlib.pyplot as plt
 
 import os 
 
 ```
 
-++ Here, we want to demonstrate how to forecast multiple period (step) using a recursive approach.The recursive approach entails forecasting step by step: forecasting the next step, updating the data required to produce (engineer) predictve features and than making the next forecast based on the updated data.
+The recursive approach in time series forecasting predicts each step sequentially, updating the input data with each new forecast before proceeding to the next. The idea is to first make a prediction for the next time step based on historical data, then append the predicted value to the input features. This updated data is used to forecast the subsequent time step, and the process repeats for the desired number of forecast periods.
 
 ```{python import_data}
 
@@ -64,7 +69,7 @@ raw_df.index = pd.to_datetime(raw_df.index)
 
 ## Pipeline
 
-The following steps involve extracting essential features from the datetime index, creating lag and window-based features, and transforming cyclical features like month and hour into sinusoidal form to capture seasonality. Additionally, any missing data is handled and specific features are dropped before fitting the model. The pipeline approach is utilized to bundle these operations into a single object for convenience and reusability.
+The feature engineering process is key in preparing time series data for forecasting. Here, we will extract important features from the datetime index, such as month, day, and hour. We'll also generate lag features (i.e., previous values from certain intervals) and rolling window features (i.e., averages or other statistics over a specific time window). Additionally, cyclical features like month and hour will be transformed using sine and cosine functions to capture the seasonality and periodic nature of the data. Missing data will be handled, and irrelevant features will be dropped to ensure cleaner inputs for the forecasting model.
 
 ```{python define_preprocessing}
 
@@ -114,27 +119,30 @@ trans_pipe = Pipeline(
 
 ```
 
-The pipeline defined here combines feature engineering tasks such as creating lag features, window statistics, and cyclical features, along with handling missing data and dropping unnecessary columns. This ensures that all transformations are consistently applied to both the training and testing sets, preventing leakage of future information.
+The transformations inside the pipeline help to automate the process of preparing the data consistently for both training and prediction. This approach ensures that we can avoid data leakage (i.e., using information from the future) and apply the same set of transformations to any new data points that come in.
 
 ```{python pipeline}
 
 trans_pipe = Pipeline(
-  [("date_time_features",date_time_feat),
-   ("lag_features",lag_feat),
-   ("window_features",window_feat),
-   ("periodic_features",cyclical_feat),
-   ("drop_original_features",drop_feat),
-   ("drop_missing_values",na_drop)
+  
+  [
+    ("date_time_features",date_time_feat),
+    ("lag_features",lag_feat),
+    ("window_features",window_feat),
+    ("periodic_features",cyclical_feat),
+    ("drop_original_features",drop_feat),
+    ("drop_missing_values",na_drop)
   ]
   
 )
+
 del date_time_feat, lag_feat, window_feat, cyclical_feat, drop_feat,na_drop
 
 ```
 
-## Train and test split
+## Train and Test Split
 
-In time series forecasting, it’s important to account for the lagged features when splitting the data into train and test sets. The test set should contain enough prior data to compute the lagged and window-based features accurately. In this case, the longest lag is 12 hours, so we need to ensure that the test set includes the first forecasting point and at least 12 hours before it. We will split the data so that the last month is allocated to the test set. The chosen split point is "2005-03-04". If we have enough data in order to be on the safe side we can completely eliminate any overlap between the train and the test set by limiting the train set to data before split point shifted by the offset range.
+In time series forecasting, it’s essential to split the data into training and test sets in a way that prevents any future information from contaminating the training set. We will split the dataset so that the test set contains data starting from "2005-03-04,". The test set will be used for model evaluation, while the model will be trained on data before the split point.
 
 ```{python split_train_test}
 
@@ -142,24 +150,30 @@ split_point = pd.Timestamp("2005-03-04")
 
 X_train = raw_df.loc[raw_df.index < split_point]
 
-X_test = raw_df.loc[raw_df.index >= split_point - pd.offsets.Hour(12)]
+X_test = raw_df.loc[raw_df.index >= split_point]
 
 Y_train = raw_df.loc[raw_df.index < split_point,["CO_sensor", "RH"]]
 
-Y_test = raw_df.loc[raw_df.index >= split_point - pd.offsets.Hour(12),
-                   ["CO_sensor", "RH"]]
+Y_test = raw_df.loc[raw_df.index >= split_point,["CO_sensor", "RH"]]
 
 
 ```
 
 
-## Preprocess data
+# Manual Prediction
+
+To illustrate the recursive approach, we will first manually predict the first two forecasting points. This step-by-step process demonstrates how we update the input data with each prediction before using it to forecast the next point. After that, we'll automate the recursive forecasting for subsequent steps.
+
+
+## Preprocess Data
 
 ```{python preprocess_data}
 
-X_train_processed = trans_pipe.fit_transform(X_train.copy())
+trans_pipe.fit(X_train.copy())
 
-Y_train = Y_train.loc[X_train_processed.index]
+X_train_processed = trans_pipe.transform(X_train.copy())
+
+Y_train_processed = Y_train.loc[X_train_processed.index].copy()
 
 # X_test_processed = trans_pipe.fit_transform(X_test.copy())
 # 
@@ -167,171 +181,195 @@ Y_train = Y_train.loc[X_train_processed.index]
 
 ```
 
-After preprocessing and ensuring that the features and target are properly aligned, we can train the forecasting model. Here, we use Lasso regression, a linear model that performs both variable selection and regularization to prevent overfitting. This model is suitable for time series forecasting with many features, especially when we want to avoid overly complex models that may not generalize well to unseen data.
+Once the data is preprocessed and aligned correctly with the target variables, we can move on to training the model. For this, we use Lasso regression, a form of linear regression that includes a regularization term to reduce the complexity of the model and prevent overfitting. It’s well-suited for scenarios where the dataset has many features and we want to ensure that the model generalizes well to new data.
 
-## Prediction
+## Fit model
 
-++ explain the for illustration sake we will produce the first two forecast (first and second forecasting points) "manually". Then we will automate the process of producing the next forecast by updating the input data (using current forecast) and passing the updated data to the model
-
-```{python model}
+```{python fit_model}
 
 lasso_model = MultiOutputRegressor(Lasso())
 
-lasso_model.fit(X_train_processed, Y_train)
+lasso_model.fit(X_train_processed, Y_train_processed)
 
 ```
 
 ### First point
 
+We first manually prepare the input data for the initial forecast point ("2005-03-04 00:00:00"). The input data must include all the necessary features from the previous 12 hours to compute lagged features for this forecast point. After preparing the data, we make the first prediction.
+
 ```{python make_input_data_for_first_point}
 
-first_forecast_point = pd.Timestamp("2005-03-04")
+first_forecast_point = split_point
 
-first_input_data = X_test.loc[
-  (X_test.index >= first_forecast_point - pd.offsets.Hour(12)) &
-  (X_test.index < first_forecast_point)
-  ]
+feature_source_data = X_train.iloc[-12:].copy()
                         
-forecast_row = pd.DataFrame(data = np.nan,
+forecast_index_row = pd.DataFrame(data = np.nan,
                             index = [first_forecast_point],
                             columns = ["CO_sensor","RH"])
                             
-first_input_data = pd.concat([first_input_data.copy(),
-                              forecast_row], axis = 0)
+feature_source_data = pd.concat([feature_source_data.copy(),
+                              forecast_index_row], axis = 0)
 
-print(first_input_data)
+print(feature_source_data)
 
 
 ```
 
 ```{python first_point_process_and_predict}
 
-first_input_data_processed = trans_pipe.transform(first_input_data)
+first_features_vec = trans_pipe.transform(feature_source_data)
 
-print(first_input_data.index.min(),first_input_data.index.max())
-
-print(first_input_data_processed.index.min(),
-      first_input_data_processed.index.max())
-      
-
-first_point_pred = lasso_model.predict(first_input_data_processed)
+first_point_pred = lasso_model.predict(first_features_vec)
 
 predictions_df = pd.DataFrame(data = first_point_pred,
                                 index = [first_forecast_point],
                                 columns = ["CO_sensor","RH"])
+print(predictions_df)
 
 ```
 
-
-
 ### Second point
+
+Next, we update the input data by incorporating the forecast made for the first point and use it to predict the second forecast point.
 
 ```{python predict_second_point}
 
 second_forecast_point = first_forecast_point + pd.offsets.Hour(1)
 
-second_input_data = first_input_data.iloc[1:].copy()
+# Update feature source data (exclude the first observation and append forecast)
 
-second_input_data.loc[first_forecast_point] = first_point_pred
+feature_source_data = feature_source_data.iloc[1:].copy()
+
+feature_source_data.loc[first_forecast_point] = first_point_pred
 
 second_forecast_row = pd.DataFrame(data = np.nan,
                             index = [second_forecast_point],
                             columns = ["CO_sensor","RH"])
 
-second_input_data = pd.concat([second_input_data.copy(),
+feature_source_data = pd.concat([feature_source_data.copy(),
                               second_forecast_row], axis = 0)                      
 
 ```
 
-
 ```{python second_point_process_and_predict}
 
-second_input_data_processed = trans_pipe.transform(second_input_data)
+second_features_vec = trans_pipe.transform(feature_source_data)
 
-second_point_pred = lasso_model.predict(second_input_data_processed)
+second_point_pred = lasso_model.predict(second_features_vec)
 
 predictions_df = pd.concat([predictions_df.copy(),
                             pd.DataFrame(data = second_point_pred,
                             index = [second_forecast_point],
                             columns = ["CO_sensor","RH"])])
 
-
-
-```
-
-```{python predictions}
-
 print(predictions_df)
 
+
 ```
 
-# Automate recursive forecast
+# Automate Recursive Forecast
 
-++ explain that the main idea is to use a loop: first we will make the first forecast outside the loop and then loop through the remaining forecast horizons updatding data and producing the next forecast. In order to simplify the code we will break the task to simpler tasks:
-1. Forecast the next point based on current input data, preprocessing instructions and the model
-2. Update the input data by adding the current forecast
+The recursive approach is automated using a loop. We start by manually making the first forecast and then loop through the remaining forecast horizon, updating the input data and producing the next prediction in each iteration. This modular approach breaks down the forecasting task into two key functions: one for generating the next forecast and another for updating the input data with the latest forecast. We use these functions inside a loop to predict for all remaining time points in the forecast horizon.
 
-We will perform the two tasks in a loop through the entire forecast horizon range
-
-```{python }
+```{python auxilary_functions}
 
 
-def forecast_next_point(input_data, model, preprocess_pipe):
-  input_data_processed = preprocess_pipe.transform(input_data)
-  prediction = model.predict(input_data_processed)
-  return(prediction)
-
-def update_input_data(input_data, last_prediction):
-  input_data.iloc[len(input_data) - 1] = last_prediction
-  input_data = input_data.iloc[1:].copy()
-  next_forecast_row = pd.DataFrame(
-                      data = np.nan,
-                      index = [input_data.index.max() + pd.offsets.Hour(1)],
-                      columns = input_data.columns.values
-                      )
-                      
-  input_data = pd.concat([input_data.copy(), next_forecast_row], axis = 0)
-  return input_data
-
-def make_recursive_forecast(forecast_horizon,
-                            initial_input_data,model, preprocess_pipe):
-                              
-    # Initial case
-                              
-    current_data = initial_input_data.copy()
-
-    current_pred = forecast_next_point(initial_input_data,model,preprocess_pipe)
+def make_recursive_forecast(forecast_horizon,X_train, Y_train,
+                            model, preprocess_pipe):
     
-    predictions_df = pd.DataFrame(data = current_pred,
-                                  index = [initial_input_data.index.max()],
-                                  columns = initial_input_data.columns.values)
-                                  
-    # Loop through the remaining forecasting range                            
+    # Preprocess data and fit model
     
-    for temp_hor in range(1, forecast_horizon):
-      
-      current_data = update_input_data(current_data.copy(), current_pred)
-      
-      current_pred = forecast_next_point(current_data, model, preprocess_pipe)
-      
-      predictions_df = pd.concat([predictions_df.copy(),
-                                  pd.DataFrame(data = current_pred,
-                                  index = [current_data.index.max()],
-                                  columns = current_data.columns.values)],
+    feature_source_data, model_spec,preprocess_pipe_spec = \
+    preprocess_data_and_fit_model(X_mat = X_train.copy(),
+                    Y_mat = Y_train.copy(),
+                    model_spec = MultiOutputRegressor(Lasso()),
+                    preprocess_pipe_spec = preprocess_pipe)
+                    
+    
+     
+                    
+    # Make next prediction
+    
+    next_pred = predict_next_point(feature_source_data = feature_source_data,
+                              model_spec = model_spec,
+                              preprocess_pipe_spec = preprocess_pipe_spec)
+                              
+    predictions_df = next_pred.copy()                          
+    
+    # Update feature_source_data and iterate
+    
+    for step in range(1, forecast_horizon):
+    
+      feature_source_data = pd.concat([feature_source_data.copy(),
+                                       next_pred], axis = 0)
+                                       
+      next_pred = predict_next_point(feature_source_data = feature_source_data,
+                                model_spec = model_spec,
+                                preprocess_pipe_spec = preprocess_pipe_spec)
+                                
+      predictions_df = pd.concat([predictions_df.copy(), next_pred],
                                   axis = 0)
                                   
+    
     return predictions_df
+    
+    
+ 
+def preprocess_data_and_fit_model(X_mat, Y_mat,preprocess_pipe_spec, model_spec):
   
+  preprocess_pipe_spec.fit(X_mat.copy())
   
+  X_mat_processed = preprocess_pipe_spec.transform(X_mat.copy())
+
+  Y_mat_processed = Y_mat.loc[X_mat_processed.index].copy()
+  
+  model_spec.fit(X_mat_processed,Y_mat_processed)
+  
+  feature_source_data = X_mat.iloc[-12:]
+  
+  return([feature_source_data, model_spec,preprocess_pipe_spec])
+
+
+def predict_next_point(feature_source_data,model_spec,preprocess_pipe_spec):
+  
+  forecast_index = feature_source_data.index.max() + pd.DateOffset(hours = 1)
+  
+  forecast_index_row = pd.DataFrame(data = np.nan,
+                              index = [forecast_index],
+                              columns = ["CO_sensor","RH"])
+                              
+  feature_source_data = pd.concat([feature_source_data.copy(),
+                                forecast_index_row], axis = 0)
+                                
+  feature_vec = preprocess_pipe_spec.transform(feature_source_data)
+  
+  feature_vec = feature_vec.iloc[[len(feature_vec) - 1]].copy()
+  
+  predictions = model_spec.predict(feature_vec)
+  
+  predictions_df = pd.DataFrame(data = predictions,
+                              index = [forecast_index],
+                              columns = ["CO_sensor","RH"])
+  
+  return predictions_df
+
+
+```
+
+```{python make_predictions}
+
+
 predictions_for_24_h = make_recursive_forecast(forecast_horizon = 24,
-                               initial_input_data = first_input_data,
-                               model = lasso_model,
-                               preprocess_pipe = trans_pipe)
+                                               X_train = X_train.copy(),
+                                               Y_train = Y_train.copy(),
+                                               model = MultiOutputRegressor(Lasso()),
+                                               preprocess_pipe = clone(trans_pipe))
                                
 print(predictions_for_24_h.head())
 
 
 ```
+
 
 ```{python plot_predictions}
 
@@ -341,3 +379,15 @@ plt.show()
 
 ```
 
+```{python test_for_equality}
+
+print(f"Manual predictions are equal to automatic predicitons: {predictions_df.equals(predictions_for_24_h.iloc[0:2])}")
+
+
+```
+
+
+
+## Summary
+
+In this tutorial, we demonstrated how to use a recursive approach to forecast multiple periods ahead in time series data. By applying a pipeline for feature engineering and using Lasso regression, we built a model to predict air quality sensor readings. The recursive method allowed us to forecast step-by-step, updating the input data with each new prediction. Finally, we automated the process using a loop, making it easy to predict several steps ahead efficiently. This approach is highly adaptable to various time series forecasting problems.
