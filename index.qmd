@@ -8,6 +8,7 @@ title: "DS_advanced_website"
     -   [**Feature Engineering**](topics/intro/feature_egineering.qmd)
     -   [**Forecasting**](topics/intro/forecaster_demo.qmd)
 -   [**Forecasting**]()
+    -   [**Forecasting small**](topics/forecasting/recursive_forecasting_small.qmd)
     -   [**Forecasting pipeline**](topics/forecasting/forecasting_pipeline.qmd)
     -   [**One step forecasting**](topics/forecasting/forecasting_one_step.qmd)
     -   [Multistep forecasting]()
