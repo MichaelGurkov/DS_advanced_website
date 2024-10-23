@@ -1,5 +1,5 @@
 ---
-title: "Piecewise linear regression"
+title: "Tree models in trends"
 ---
 
 ```{r set_up_python, echo=FALSE}
@@ -34,10 +34,21 @@ import os
 from sklearn.linear_model import LinearRegression
 
 from sklearn import set_config
+
 from sklearn.base import clone
+
 from sklearn.pipeline import make_pipeline, make_union
-from sklearn.preprocessing import MinMaxScaler, PolynomialFeatures
+
+from sklearn.preprocessing import PolynomialFeatures
+
+from sktime.forecasting.trend import PolynomialTrendForecaster
+
+from sktime.transformations.series.boxcox import LogTransformer
+
+from sktime.transformations.series.detrend import Detrender
+
 from sktime.transformations.series.summarize import WindowSummarizer
+
 from sktime.transformations.series.time_since import TimeSince
 
 set_config(transform_output="pandas")
@@ -47,7 +58,7 @@ from sklearn.metrics import root_mean_squared_error
 
 ```{python import_data}
 
-file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_retail_sales.csv"
+file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_air_passengers.csv"
 
 raw_df = pd.read_csv(file_path,index_col = "date")
 
@@ -56,97 +67,140 @@ raw_df.index = pd.to_datetime(raw_df.index)
 
 ```
 
-```{python plot_with_changepoints}
+```{python plot_data}
 
 plt.clf()
 
+raw_df.plot()
+
+plt.show()
+
+
+```
+
+# Trend
+
+```{python forecast_trend}
+
+trend_forecaster = PolynomialTrendForecaster(degree = 1)
+
+trend_forecaster.fit(raw_df[["passengers"]].copy())
+
+forecast_range = pd.date_range(start = raw_df.index.min(),
+                               end = raw_df.index.max() + pd.DateOffset(months = 12),
+                               freq = "MS")
+                               
+trend_forecast = trend_forecaster.predict(fh = forecast_range)
+
+
+```
+
+```{python plot_trend}
+
 fig, ax = plt.subplots(figsize=[10, 5])
 
-raw_df.plot(y="sales", marker=".", figsize=[10, 5], legend=None, ax=ax)
+raw_df.plot(y="passengers", marker=".", legend=None, ax=ax)
 
-# ax.set_xlabel("Time")
-# 
-# ax.set_ylabel("Retail Sales")
-# 
-# ax.set_title("Retail Sales")
+trend_forecast.plot(ax=ax)
 
-ax.vlines(
-    ["2008-01-01", "2009-04-01"],
-    ymin=raw_df["sales"].min(),
-    ymax=raw_df["sales"].max(),
-    color="r",
-    alpha=0.5,
-)
+ax.legend(["y", "trend"])
 
 plt.tight_layout()
 
 plt.show()
+```
+
+```{python data_split}
+
+split_date = pd.to_datetime("1958-01-01")
+
+train_set = raw_df.loc[raw_df.index <= split_date].copy().asfreq("MS")
+
+test_set = raw_df.loc[raw_df.index > split_date].copy().asfreq("MS")
 
 ```
 
-```{python split_data}
+```{python define_detrend_preprocessing}
 
-split_point = pd.to_datetime("2013-01-01")
+log_trans = LogTransformer()
 
-train_set = raw_df.loc[raw_df.index <= split_point]
+detrend_trans = Detrender(forecaster=PolynomialTrendForecaster(degree=1))
 
-test_set = raw_df.loc[raw_df.index > split_point]
+detrend_pipe = make_pipeline(log_trans, detrend_trans)
 
 ```
 
+```{python preprocess_data}
 
-```{python define_preprocess}
+log_trans.fit(train_set)
 
-target = ["sales"]
 
-changepoints = [
-  "2008-01-01", # first changepoint
-  "2009-04-01"  # second changepoint
-  ]
-  
-# Polynomial time features
-trend_trans = make_pipeline(
-    TimeSince(), PolynomialFeatures(degree=1, include_bias=False)
-)
+y_transformed = log_trans.transform(test_set)
+
+y_restored = log_trans.inverse_transform(y_transformed)
 
 
 
-changepoints_trans = TimeSince(changepoints, positive_only=True)
+```
 
-lag_window_trans = WindowSummarizer(
-    lag_feature={"lag": 2},
-    target_cols=target,
+```{python plot_original_and_restored}
+
+plt.clf()
+
+fig, ax = plt.subplots(figsize=[10, 5])
+test_set.plot(ax=ax)
+y_restored.plot(marker=".", linestyle="none", color="r", ax=ax)
+ax.legend(["y", "inverse_transformed_series"])
+ax.set_xlabel("Time")
+ax.set_ylabel("y")
+ax.set_title("Air passenger numbers")
+plt.tight_layout()
+plt.show()
+
+
+```
+
+# Tree model
+
+```{python define_feature_engineering}
+
+time_feats = TimeSince()
+
+lag_window_feats = WindowSummarizer(
+    lag_feature={
+        "lag": [1, 2, 3, 12],
+        "mean": [[1, 12]],
+    },
+    target_cols=["passengers"],
     truncate="bfill",
     n_jobs = 1
 )
-                               
-# Create features derived independent of one another
-trans_pipe = make_union(trend_trans, changepoints_trans,lag_window_trans)
 
-# Apply min-max scaling to all the features
-trans_pipe = make_pipeline(trans_pipe, MinMaxScaler())
+feat_eng_pipe = make_union(time_feats, lag_window_feats)
 
 ```
 
+```{python detrend_train_test}
 
-```{python preprocess}
+X_train_detrended = detrend_pipe.fit_transform(train_set.copy())
 
-X_train_processed = trans_pipe.fit_transform(train_set.copy())
+X_test_detrended = detrend_pipe.transform(test_set.copy())
 
 ```
 
+## Recursive forecast
 
 ```{python auxilary_functions}
 
 
-def make_recursive_forecast(forecast_horizon,X_train, Y_train,
+def make_recursive_forecast(forecast_horizon,X_train, y_train,
                             model, preprocess_pipe):
     
     # Preprocess data and fit model
     
     feature_source_data, model_spec,preprocess_pipe_spec = \
     preprocess_data_and_fit_model(X_mat = X_train.copy(),
-                    Y_mat = Y_train.copy(),
+                    Y_mat = y_train.copy(),
                     model_spec = model,
                     preprocess_pipe_spec = preprocess_pipe)
                     
@@ -201,7 +255,7 @@ def predict_next_point(feature_source_data,model_spec,preprocess_pipe_spec):
   
   forecast_index_row = pd.DataFrame(data = np.nan,
                               index = [forecast_index],
-                              columns = ["sales"])
+                              columns = ["passengers"])
                               
   feature_source_data = pd.concat([feature_source_data.copy(),
                                 forecast_index_row], axis = 0)
@@ -214,35 +268,36 @@ def predict_next_point(feature_source_data,model_spec,preprocess_pipe_spec):
   
   predictions_df = pd.DataFrame(data = predictions,
                               index = [forecast_index],
-                              columns = ["sales"])
+                              columns = ["passengers"])
   
   return predictions_df
 
+```
+
+```{python make_recursive_forecast}
+
+
+pred = make_recursive_forecast(forecast_horizon = 35,
+                               X_train = X_train_detrended.copy(),
+                               y_train = X_train_detrended.copy(),
+                               model = LinearRegression(),
+                               preprocess_pipe = clone(feat_eng_pipe))
+                               
+
+pred_restored = detrend_pipe.inverse_transform(pred.copy())
 
 ```
 
 
-```{python make_predictions}
+```{python }
 
-pred = make_recursive_forecast(forecast_horizon = 40,
-                        X_train = train_set.copy(),
-                        Y_train = train_set.copy(),
-                        model = LinearRegression(),
-                        preprocess_pipe = clone(trans_pipe))
-
-
-```
-
-```{python compare_preds}
-
-comparison_df = test_set.copy().join(pred.copy(), how = "inner",
+comparison_df = test_set.copy().join(pred_restored.copy(), how = "inner",
                          lsuffix='_actual', rsuffix='_pred')
 
 
 comparison_df.plot()
 
 plt.show()
-
 
 ```
 
