@@ -1291,7 +1291,7 @@ div.sk-label-container:hover .sk-estimator-doc-link.fitted:hover,
 <span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    feature_source_data, model_spec,preprocess_pipe_spec <span class="op">=</span> <span class="op">\</span></span>
 <span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    preprocess_data_and_fit_model(X_mat <span class="op">=</span> X_train.copy(),</span>
 <span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>                    Y_mat <span class="op">=</span> Y_train.copy(),</span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>                    model_spec <span class="op">=</span> MultiOutputRegressor(Lasso()),</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>                    model_spec <span class="op">=</span> model,</span>
 <span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>                    preprocess_pipe_spec <span class="op">=</span> preprocess_pipe)</span>
 <span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>                    </span>
 <span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    </span>
@@ -1392,9 +1392,9 @@ div.sk-label-container:hover .sk-estimator-doc-link.fitted:hover,
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Manual predictions are equal to automatic predicitons </span><span class="sc">{</span>predictions_df<span class="sc">.</span>equals(predictions_for_24_h.iloc[<span class="dv">0</span>:<span class="dv">2</span>])<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Manual predictions are equal to automatic predicitons: </span><span class="sc">{</span>predictions_df<span class="sc">.</span>equals(predictions_for_24_h.iloc[<span class="dv">0</span>:<span class="dv">2</span>])<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Manual predictions are equal to automatic predicitons True</code></pre>
+<pre><code>Manual predictions are equal to automatic predicitons: True</code></pre>
 </div>
 </div>
 <section id="summary" class="level2">

@@ -297,7 +297,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>X_train_processed <span class="op">=</span> trans_pipe.fit_transform(X_train.copy())</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>X_test_processed <span class="op">=</span> trans_pipe.fit_transform(X_test.copy())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>X_test_processed <span class="op">=</span> trans_pipe.transform(X_test.copy())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>During preprocessing, we apply transformations that handle missing data by dropping rows with missing values. This can result in a misalignment between the processed features and the target variable, as some time points are removed from the training features but remain in the target vector. To resolve this, we need to realign the target vector with the processed features by using <code>.loc</code> to filter both the training and test target vectors based on the updated index of the processed feature sets.</p>
 <div class="cell">
@@ -744,7 +744,7 @@ div.sk-label-container:hover .sk-estimator-doc-link.fitted:hover,
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"The root mean squared error on the test set is </span><span class="sc">{</span>rmse<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>The root mean squared error on the test set is 86.7041</code></pre>
+<pre><code>The root mean squared error on the test set is 86.7063</code></pre>
 </div>
 </div>
 

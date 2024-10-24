@@ -154,7 +154,7 @@ y_test = raw_df.loc[raw_df.index >= split_point - pd.offsets.Hour(24),"CO_sensor
 
 X_train_processed = trans_pipe.fit_transform(X_train.copy())
 
-X_test_processed = trans_pipe.fit_transform(X_test.copy())
+X_test_processed = trans_pipe.transform(X_test.copy())
 
 ```
 

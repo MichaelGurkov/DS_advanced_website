@@ -31,7 +31,7 @@ import seaborn as sns
 
 import os 
 
-from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
 
 from sklearn import set_config
 
@@ -280,7 +280,7 @@ def predict_next_point(feature_source_data,model_spec,preprocess_pipe_spec):
 pred = make_recursive_forecast(forecast_horizon = 35,
                                X_train = X_train_detrended.copy(),
                                y_train = X_train_detrended.copy(),
-                               model = LinearRegression(),
+                               model = DecisionTreeRegressor(),
                                preprocess_pipe = clone(feat_eng_pipe))
                                
 
