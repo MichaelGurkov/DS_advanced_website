@@ -1,5 +1,5 @@
 ---
-title: "Forecasting interval (multiple periods ahead) - direct approach"
+title: "Forecasting Interval (Multiple Periods Ahead) - Direct Approach"
 ---
 
 ```{r set_up_python, echo=FALSE}
@@ -22,30 +22,20 @@ reticulate::use_python(python_path)
 ```{python import_libraries}
 
 import numpy as np
-
 import pandas as pd
-
 from feature_engine.imputation import DropMissingData
-
 from feature_engine.selection import DropFeatures 
-
 from feature_engine.timeseries.forecasting import LagFeatures
-
 from sklearn.linear_model import LinearRegression
-
 from sklearn.multioutput import MultiOutputRegressor
-
 from sklearn.metrics import root_mean_squared_error
-
 from sklearn.pipeline import Pipeline
-
 import matplotlib.pyplot as plt
-
 import os 
 
 ```
 
-++ explain that we want to demonstrate how to forecast multiple period (step) using a pipeline approach. we will use a direct approach - we'll make a forecast for each time point in the forecast interval that mean making simultaneous forecast for several horizons. For demonstration we'll use a forecast interval of three periods ahead (so we need to make a forecast for the next value, the one after the next and the one after him.)
+In this tutorial, we will demonstrate a method for forecasting multiple periods ahead using a pipeline-based approach in Python. Specifically, we will use a direct approach for multi-step forecasting, where each future period within the forecast horizon is predicted independently. The direct approach allows us to generate a forecast for each individual time point in a given interval, which is helpful for applications that need predictions for multiple consecutive periods. For our demonstration, we’ll use a forecast interval of three periods, predicting the next, the following, and the third subsequent time point. This approach involves handling the challenges of preparing lagged data and synchronizing multiple targets across different forecast horizons.
 
 ```{python import_data}
 
@@ -99,9 +89,9 @@ X_test_processed = feature_engine_pipe.transform(test_set.copy())
 
 ```
 
+# Constructing a target matrix for multiple horizons
 
-++ Since we want to make predictions for multiple periods we will have multiple target series , one for each forecast horizon. This will resolve some missing data in the target matrix because for each forecasting time point we need the next (future) 3 time points. For our last data point we don't have future values at all, for the one before the last we only have one and so on. We handle missing data by dropping rows with missing values. This can result in a misalignment between the processed features and the target variable, as some time points are removed from the target matrix but remain in the train matrix. To resolve this, we will filter the data to common dates using .loc
-
+To make multi-step predictions, we require separate target series for each forecast horizon. This setup ensures that the model can output forecasts for three consecutive months. Since we’re making forecasts for multiple time steps into the future, the target variable needs to include values for each future point within the forecast interval. We achieve this by creating a matrix with separate columns for each horizon (three periods in this case). Each column in the target matrix represents one step forward in time, while rows without sufficient future values are dropped. This process may cause misalignment between the features and targets, which is resolved by selecting only rows that are common to both.
 
 ```{python construct_Y_matrix}
 
@@ -136,7 +126,6 @@ Y_test_processed = Y_test_processed.drop(columns = target).copy()
 
 ```
 
-
 ```{python filter_data_to_common_dates}
 
 train_index = X_train_processed.index.intersection(Y_train_processed.index)
@@ -155,15 +144,11 @@ X_test_processed = X_test_processed.loc[test_index].copy()
 
 Y_test_processed = Y_test_processed.loc[test_index].copy()
 
-
-
 ```
-
 
 # Model fitting
 
 Now that we have our features prepared, we can proceed to model fitting. In this demonstration, we use a basic Linear Regression model to predict the number of passengers based on the lagged feature (the number of passengers from the previous month). Although Linear Regression is a simple model, it is often used as a baseline for forecasting tasks. This step illustrates how the processed features are used to train the model.
-
 
 ```{python fit_model}
 
@@ -172,7 +157,6 @@ lin_reg = MultiOutputRegressor(LinearRegression())
 lin_reg.fit(X_train_processed, Y_train_processed)
 
 ```
-
 
 # Making predictions
 
@@ -198,10 +182,7 @@ Y_test_pred = pd.DataFrame(data = Y_test_pred.copy(),
                             
 Y_test_pred = Y_test_pred.copy().join(Y_test_processed.copy())
 
-
-
 ```
-
 
 ## Performance evaluation
 
@@ -224,7 +205,9 @@ for temp_h in range(forecast_horizon):
   
   test_rmse = root_mean_squared_error(y_pred_test, y_actual_test)
   
-  print(f"Train RMSE for horizon {temp_h} is {np.round(train_rmse,2)},Test RMSE is {np.round(test_rmse,2)}")
-
+  print(f"Train RMSE for horizon {temp_h} is {np.round(train_rmse,2)}, Test RMSE is {np.round(test_rmse,2)}")
 
 ```
+
+# Summary 
+This tutorial demonstrates a structured approach to multi-step forecasting using a pipeline in Python. By leveraging feature engineering, linear regression, and the multi-output capability of scikit-learn, we can predict multiple periods ahead with relative ease. The RMSE scores indicate the model's performance across the forecast horizons, and this direct approach can serve as a baseline or be further enhanced with more complex models for real-world applications requiring multi-period forecasting.
