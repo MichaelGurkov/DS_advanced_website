@@ -2,35 +2,16 @@
 title: "DS_advanced_website"
 ---
 
-## Topics
+<div class="image-container">
+  <a href="topics/intro/forecaster_demo.qmd">
+    <img src="images/intro.png" alt="Forecast Demo" class="topic-image">
+    <div class="image-text">Forecast Demo</div>
+  </a>
+</div>
 
--   [**Introduction**](topics/intro/eda.qmd)
-    -   [**Feature Engineering**](topics/intro/feature_egineering.qmd)
-    -   [**Forecasting**](topics/intro/forecaster_demo.qmd)
--   [**Forecasting**]()
-    -   [**Forecasting small**](topics/forecasting/recursive_forecasting_small.qmd)
-    -   [**Forecasting pipeline**](topics/forecasting/forecasting_pipeline.qmd)
-    -   [**One step forecasting**](topics/forecasting/forecasting_one_step.qmd)
-    -   [Multistep forecasting]()
-        - [**Direct forecasting**](topics/forecasting/forecasting_multiple_steps.qmd)
-        - [**Recursive forecasting**](topics/forecasting/forecasting_multiple_steps_recursive.qmd)
-        - [**Forecasting comparison**](topics/forecasting/forecasting_comparison.qmd)
-
--  [**Time Series Decomposition**]()
-   -  [**Transformations**](topics/ts_decomposition/transformations.qmd)
-   -  [**Classical decomposition**](topics/ts_decomposition/class_decomp.qmd)
-   -  [**LOWESS decomposition**](topics/ts_decomposition/lowess_decomp.qmd)
-   -  [**STL decomposition**](topics/ts_decomposition/stl_decomp.qmd)
-
--  [**Missing data imputation**]()
-   -   [**Missing data imputation**](topics/na_imputation/na_imputation.qmd)
--  [**Outliers**]()
-   -   [**Outliers**](topics/outliers/outliers.qmd)
--  [**Lagged features**]()
-   -  [**lagged_features**](topics/lagged_features/lagged_features.qmd)
-   -  [**lag_plots**](topics/lagged_features/lag_plots.qmd)
-   -  [**auto_correlation**](topics/lagged_features/auto_correlation.qmd)
-   -  [**ar_process**](topics/lagged_features/ar_process.qmd)
-   -  [**distributed_lag_features**](topics/lagged_features/distributed_lag_features.qmd)
--  [**Window features**]()
-   -  [**window_features**](topics/window_features/window_features.qmd)
+<div class="image-container">
+  <a href="topics/intro/direct_forecasting.qmd">
+    <img src="images/direct_forecast.png" alt="Direct forecast" class="topic-image">
+    <div class="image-text">Direct forecast</div>
+  </a>
+</div>
