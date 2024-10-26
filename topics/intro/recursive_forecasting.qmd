@@ -1,0 +1,388 @@
+---
+title: "Forecasting Interval (Multiple Periods Ahead) - Recursive Approach"
+---
+
+In this tutorial, we demonstrate how to forecast multiple periods (or steps) ahead using a recursive approach, which is commonly applied in time series forecasting. The recursive approach involves using the model’s previous predictions as inputs for generating subsequent predictions. This iterative process is essential for making forecasts that extend over multiple time steps, especially in cases where future values depend on previous predictions. We’ll use this approach to build a forecasting model and evaluate its performance, covering essential preprocessing steps, model fitting, and accuracy measurement.
+
+```{r set_up_python, echo=FALSE}
+#|echo: FALSE
+
+if (Sys.getenv("USERPROFILE") == "C:\\Users\\internet"){
+  
+  python_path = paste0("C:\\Users\\internet\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+} else {
+  
+  python_path = paste0("C:\\Users\\Home\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+}
+
+reticulate::use_python(python_path)
+
+```
+
+```{python load_libraries}
+import numpy as np
+
+import pandas as pd
+
+import matplotlib.pyplot as plt
+
+import seaborn as sns
+
+import os 
+
+from sklearn.pipeline import Pipeline
+
+from sklearn.base import clone
+
+from sklearn.linear_model import LinearRegression
+
+from feature_engine.timeseries.forecasting import LagFeatures
+
+from feature_engine.imputation import DropMissingData
+
+from feature_engine.selection import DropFeatures 
+
+from sklearn.metrics import root_mean_squared_error
+
+
+```
+
+```{python import_data}
+
+file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_air_passengers.csv"
+
+raw_df = pd.read_csv(file_path,index_col = "date")
+
+raw_df.index = pd.to_datetime(raw_df.index)
+
+```
+
+# Split Data
+
+In this step, we divide the dataset into training and testing sets. The training set includes data up until April 1957, which allows the model to learn patterns from the historical data. The test set contains data from May 1957 onward, which will be used to evaluate how well the model generalizes to unseen data. Splitting the dataset this way helps assess the model's performance on future data points.
+
+```{python split_train_test_data}
+
+split_date = pd.to_datetime("1957-04-01")
+
+train_set = raw_df.loc[raw_df.index <= split_date].copy()
+
+test_set = raw_df.loc[raw_df.index > split_date].copy()
+
+```
+
+# Preprocess Data
+
+In forecasting, the target variable is the one we want to predict. In this case, the target is the `passengers` column. We will use the number of passengers from the previous month (`passengers_lag_1`) as a feature. This approach is called lagging, and it helps capture the temporal dependencies in the data. The naive approach assumes that the forecast for the next time step will be the same as the last known value, we will follow this approach by looking at first lag.
+
+The following code sets up a pipeline that performs feature engineering. Specifically, it generates a lagged version of the `passengers` variable, drops the original target variable from the feature set, and removes any rows with missing values (which occur due to lagging). This pipeline will be applied to both the training and testing sets.
+
+```{python set_basic_pipeline}
+
+target = ["passengers"]
+
+lag_trans = LagFeatures(variables = target,
+                        freq = ["1MS"])
+                        
+target_drop_trans = DropFeatures(features_to_drop = target)
+
+na_drop_trans = DropMissingData()
+
+feature_engine_pipe = Pipeline([("get_first_lag", lag_trans),
+                                ("remove_target", target_drop_trans),
+                                ("drop_missing_values", na_drop_trans)])
+
+X_train_processed = feature_engine_pipe.fit_transform(train_set.copy())
+
+
+y_train_processed = train_set[target].copy()
+
+y_train_processed = y_train_processed.loc[X_train_processed.index].copy()
+
+X_test_processed = feature_engine_pipe.transform(test_set.copy())
+
+Y_test_actual = test_set[target].copy()
+
+
+
+
+```
+
+# Fit Model
+
+Now that we have our features prepared, we can proceed to model fitting. In this demonstration, we use a basic Linear Regression model to predict the number of passengers based on the lagged feature (the number of passengers from the previous month). Although Linear Regression is a simple model, it is often used as a baseline for forecasting tasks. This step illustrates how the processed features are used to train the model.
+
+```{python fit_model}
+
+lin_reg = LinearRegression()
+
+lin_reg.fit(X_train_processed, y_train_processed)
+
+```
+
+## First Point
+
+To forecast the first point in the test set, we’ll use the last known value from the training set. This point will serve as the basis for predicting the next time step, and the prediction for this time step will then be used as an input to forecast subsequent steps.
+
+```{python predict_first_point}
+
+feature_source_data = train_set.copy()
+
+first_forecast_date = train_set.index.max() + pd.DateOffset(months = 1)
+
+feature_source_data.loc[first_forecast_date] = 0
+
+feature_vec = feature_engine_pipe.transform(feature_source_data.copy())
+
+feature_vec = feature_vec.iloc[[len(feature_vec) - 1]].copy()
+
+first_pred = lin_reg.predict(feature_vec)
+
+manual_preds = pd.DataFrame(index = [first_forecast_date],
+                            data = first_pred)
+
+```
+
+## Second Point
+
+For the second prediction point, we take the forecasted value from the first point and incorporate it as the next input, following the recursive approach.
+
+```{python predict_second_point}
+
+feature_source_data.loc[first_forecast_date] = first_pred
+
+second_forecast_date = first_forecast_date + pd.DateOffset(months = 1)
+
+feature_source_data.loc[second_forecast_date] = 0
+
+feature_vec = feature_engine_pipe.transform(feature_source_data.copy())
+
+feature_vec = feature_vec.iloc[[len(feature_vec) - 1]].copy()
+
+second_pred = lin_reg.predict(feature_vec)
+
+manual_preds = pd.concat([manual_preds,pd.DataFrame(index = [second_forecast_date],
+                            data = second_pred)], axis = 0).copy()
+
+manual_preds.columns = ["passengers"]
+
+```
+
+# Automate Recursive Forecast
+
+We automate the recursive forecasting process using auxiliary functions to streamline the prediction process across multiple time steps.
+
+```{python auxilary_functions}
+
+
+def make_recursive_forecast(forecast_horizon,feature_source_data,
+                            model_spec, preprocess_pipe_spec):
+    
+
+    # Make next prediction
+    
+    next_pred = predict_next_point(feature_source_data = feature_source_data,
+                              model_spec = model_spec,
+                              preprocess_pipe_spec = preprocess_pipe_spec)
+                              
+    predictions_df = next_pred.copy()                          
+    
+    # Update feature_source_data and iterate
+    
+    for step in range(1, forecast_horizon):
+    
+      feature_source_data = pd.concat([feature_source_data.copy(),
+                                       next_pred], axis = 0)
+                                       
+      next_pred = predict_next_point(feature_source_data = feature_source_data,
+                                model_spec = model_spec,
+                                preprocess_pipe_spec = preprocess_pipe_spec)
+                                
+      predictions_df = pd.concat([predictions_df.copy(), next_pred],
+                                  axis = 0)
+                                  
+    
+    return predictions_df
+    
+    
+ 
+def preprocess_data_and_fit_model(X_mat, Y_mat,preprocess_pipe_spec, model_spec):
+  
+  preprocess_pipe_spec.fit(X_mat.copy())
+  
+  X_mat_processed = preprocess_pipe_spec.transform(X_mat.copy())
+
+  Y_mat_processed = Y_mat.loc[X_mat_processed.index].copy()
+  
+  model_spec.fit(X_mat_processed,Y_mat_processed)
+  
+  feature_source_data = X_mat.copy()
+  
+  return([feature_source_data, model_spec,preprocess_pipe_spec])
+
+
+def predict_next_point(feature_source_data,model_spec,preprocess_pipe_spec):
+  
+  forecast_index = feature_source_data.index.max() + pd.DateOffset(months = 1)
+  
+  forecast_index_row = pd.DataFrame(data = 0,
+                              index = [forecast_index],
+                              columns = ["passengers"])
+                              
+  feature_source_data = pd.concat([feature_source_data.copy(),
+                                forecast_index_row], axis = 0)
+                                
+  feature_vec = preprocess_pipe_spec.transform(feature_source_data)
+  
+  feature_vec = feature_vec.iloc[[len(feature_vec) - 1]].copy()
+  
+  predictions = model_spec.predict(feature_vec)
+  
+  predictions_df = pd.DataFrame(data = predictions,
+                              index = [forecast_index],
+                              columns = ["passengers"])
+  
+  return predictions_df
+
+```
+
+```{python make_predictions}
+
+feature_source_data, model_spec,preprocess_pipe_spec = \
+preprocess_data_and_fit_model(X_mat = train_set.copy(),
+                Y_mat = train_set.copy(),
+                model_spec = LinearRegression(),
+                preprocess_pipe_spec = feature_engine_pipe)
+
+
+
+predictions_for_3_days = make_recursive_forecast(forecast_horizon = 3,
+                                                 feature_source_data = feature_source_data,
+                                                 model_spec = model_spec,
+                                                 preprocess_pipe_spec = preprocess_pipe_spec)
+                               
+print(predictions_for_3_days)
+
+
+```
+
+```{python test_for_equality}
+
+print(f"Manual predictions are equal to automatic predicitons: {manual_preds.equals(predictions_for_3_days.iloc[0:2])}")
+
+
+```
+
+# Making Predictions
+
+After fitting the model on the training data, we can generate predictions for both the training set and the test set. The predictions from the test set will allow us to assess the model's performance on unseen data, helping us understand how well the model generalizes to future values.
+
+```{python construct_Y_matrix}
+
+Y_train_actual = train_set[target].copy()
+
+Y_test_actual = test_set[target].copy()
+
+
+forecast_horizon = 3
+
+
+for temp_h in range(forecast_horizon):
+  
+  Y_train_actual[f"h_{temp_h}"] = (Y_train_actual[target]
+                                      .shift(-temp_h, freq = "MS")
+                                      .copy()
+                                      )
+  
+  Y_test_actual[f"h_{temp_h
+
+}"] = (Y_test_actual[target]
+                                      .shift(-temp_h, freq = "MS")
+                                      .copy()
+                                      )
+
+
+Y_train_actual = Y_train_actual.dropna().copy()
+
+Y_train_actual = Y_train_actual.drop(columns = target).copy()
+
+Y_test_actual = Y_test_actual.dropna().copy()
+
+Y_test_actual = Y_test_actual.drop(columns = target).copy()
+
+```
+
+```{python predictions}
+
+
+
+Y_train_pred = pd.DataFrame(data = np.nan,
+                           columns = ["pred_0","pred_1","pred_2"],
+                           index = Y_train_actual.index)
+
+for temp_index in Y_train_actual.index:
+  temp_feature_source_data = train_set.loc[[temp_index]]
+  
+  temp_pred = make_recursive_forecast(forecast_horizon = 3,
+                                                 feature_source_data = temp_feature_source_data,
+                                                 model_spec = model_spec,
+                                                 preprocess_pipe_spec = preprocess_pipe_spec)
+  
+  Y_train_pred.loc[temp_pred.index.min()] = temp_pred["passengers"].values
+                                                 
+
+Y_train_pred = Y_train_pred.copy().join(Y_train_actual.copy())
+
+
+Y_train_pred = Y_train_pred.dropna().copy()
+
+Y_test_pred = pd.DataFrame(data = np.nan,
+                           columns = ["pred_0","pred_1","pred_2"],
+                           index = Y_test_actual.index)
+
+for temp_index in Y_test_actual.index:
+  temp_feature_source_data = test_set.loc[[temp_index]]
+  
+  temp_pred = make_recursive_forecast(forecast_horizon = 3,
+                                                 feature_source_data = temp_feature_source_data,
+                                                 model_spec = model_spec,
+                                                 preprocess_pipe_spec = preprocess_pipe_spec)
+  
+  Y_test_pred.loc[temp_pred.index.min()] = temp_pred["passengers"].values
+                                                 
+
+Y_test_pred = Y_test_pred.copy().join(Y_test_actual.copy())
+
+Y_test_pred = Y_test_pred.dropna().copy()
+
+```
+
+## Performance Evaluation
+
+To evaluate the model's performance, we calculate the Root Mean Squared Error (RMSE), a commonly used metric in forecasting. RMSE measures the average magnitude of the prediction errors, with lower values indicating a better fit between the predicted and actual values. By comparing the RMSE for both the training and test sets, we can gauge how well the model performs and whether it generalizes effectively to new data.
+
+```{python calculate_rmse}
+
+
+for temp_h in range(forecast_horizon):
+  
+  y_pred_train = Y_train_pred[[f"pred_{temp_h}"]]
+
+  y_actual_train = Y_train_pred[f"h_{temp_h}"]
+
+  train_rmse = root_mean_squared_error(y_pred_train, y_actual_train)
+  
+  y_pred_test = Y_test_pred[[f"pred_{temp_h}"]]
+  
+  y_actual_test = Y_test_pred[f"h_{temp_h}"]
+  
+  test_rmse = root_mean_squared_error(y_pred_test, y_actual_test)
+  
+  print(f"Train RMSE for horizon {temp_h} is {np.round(train_rmse,2)},Test RMSE is {np.round(test_rmse,2)}")
+
+
+```
+
+In this tutorial, we successfully implemented a recursive forecasting approach, generating predictions that consider previously predicted values as inputs for future time steps. This method is particularly useful for extending forecasts over multiple periods, as each forecast builds upon the last. The evaluation metrics, especially RMSE, help us assess the model’s accuracy, demonstrating its predictive strength and ability to generalize to new data.

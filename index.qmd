@@ -15,3 +15,11 @@ title: "DS_advanced_website"
     <div class="image-text">Direct forecast</div>
   </a>
 </div>
+
+
+<div class="image-container">
+  <a href="topics/intro/recursive_forecasting.qmd">
+    <img src="images/recursive_forecast.png" alt="Direct forecast" class="topic-image">
+    <div class="image-text">Recursive forecast</div>
+  </a>
+</div>
