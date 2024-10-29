@@ -1,0 +1,128 @@
+[
+  {
+    "objectID": "topics/ts_decomposition/transformations.html",
+    "href": "topics/ts_decomposition/transformations.html",
+    "title": "Transformations",
+    "section": "",
+    "text": "import numpy as np\nimport pandas as pd\nimport matplotlib.pyplot as plt\nimport os \n\nfrom scipy.stats import boxcox"
+  },
+  {
+    "objectID": "topics/ts_decomposition/transformations.html#introduction",
+    "href": "topics/ts_decomposition/transformations.html#introduction",
+    "title": "Transformations",
+    "section": "Introduction",
+    "text": "Introduction\nData transformation is an essential preprocessing step in data analysis and machine learning, particularly when dealing with time series or data that exhibits non-linear patterns. Transformations, such as log, Box-Cox, and moving averages, are used to adjust data to make it more amenable to analysis by stabilizing variance, enhancing linearity, or smoothing out noise. These adjustments make it easier to uncover trends, detect seasonality, and improve model performance. This tutorial will explore three key transformations—log transformation, Box-Cox transformation (including the Guerrero method), and moving averages—and demonstrate how each can be applied to real-world time series data to improve its suitability for analysis and forecasting.\n\n\nfile_path = os.path.expanduser(\"~/Documents\") + \"\\\\DS_advanced_website\\\\data\\\\example_air_passengers.csv\"\nraw_df = pd.read_csv(file_path,index_col = \"date\")\nraw_df.index = pd.to_datetime(raw_df.index)\n\n\nraw_df[\"passengers\"].plot()\nplt.tight_layout()\nplt.show()"
+  },
+  {
+    "objectID": "topics/ts_decomposition/transformations.html#log-transformation",
+    "href": "topics/ts_decomposition/transformations.html#log-transformation",
+    "title": "Transformations",
+    "section": "Log Transformation",
+    "text": "Log Transformation\nTo make data more suitable for certain analyses, we may need to transform it. One common reason is to stabilize the variance, especially when dealing with data that shows exponential growth or high variability. Log transformation is an effective method for this. By taking the logarithm of each value in the data, we can compress large values and expand smaller ones, resulting in a dataset where variability across different ranges is reduced. This transformation can make trends more visible and prepare the data for further processing or modeling steps.\n\nraw_df[\"passengers_log\"] = np.log(raw_df[\"passengers\"])\nplt.clf()\nraw_df[\"passengers_log\"].plot()\nplt.tight_layout()\nplt.show()"
+  },
+  {
+    "objectID": "topics/ts_decomposition/transformations.html#box-cox-transformation",
+    "href": "topics/ts_decomposition/transformations.html#box-cox-transformation",
+    "title": "Transformations",
+    "section": "Box-Cox Transformation",
+    "text": "Box-Cox Transformation\nThe Box-Cox transformation is a versatile method used to stabilize variance across a dataset. Unlike the log transformation, Box-Cox can adapt to various data distributions by tuning the transformation parameter, \\(\\lambda\\). Different values of \\(\\lambda\\) change the shape of the transformation, allowing for either compression or expansion of data values in a customized way. By testing various \\(\\lambda\\) values, we can achieve the best variance stabilization and approximate a normal distribution, which is helpful for many statistical analyses.\nIn this example, we test a series of \\(\\lambda\\) values to demonstrate how the shape of the transformed data changes, which can help identify an optimal transformation for stabilizing variance in our dataset.\n\nlambdas_vec = [-1,-0.5,0,0.5,1,2]\nplt.clf()\nfig, ax = plt.subplots(ncols=2, nrows=3, figsize=[15, 15], sharex=True)\nax = ax.flatten()\n\nfor ix, temp_lambda in enumerate(lambdas_vec):\n    raw_df[\"temp_box_cox\"] = boxcox(raw_df[\"passengers\"], temp_lambda)\n    raw_df.plot(y=\"temp_box_cox\", ax=ax[ix], label=f\"lambda = {temp_lambda}\")\n    ax[ix].legend(fontsize=18)\n    ax[ix].set_xlabel(\"\")\n\nplt.tight_layout()\nplt.show()\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nThe Guerrero Method\nThe Guerrero method for the Box-Cox transformation offers a targeted approach to variance stabilization by automatically selecting an optimal \\(\\lambda\\) based on the data’s seasonal patterns. This method evaluates the seasonal periodicity and adjusts \\(\\lambda\\) to achieve minimal variance over time. The advantage of using Guerrero’s method is that it provides a systematic way to stabilize variance in seasonal data without manually testing multiple \\(\\lambda\\) values. This automatic tuning is particularly useful when working with time series data with complex seasonal patterns.\n\nfrom sktime.transformations.series.boxcox import BoxCoxTransformer\n\nbc_guerrero = BoxCoxTransformer(method=\"guerrero\", sp=12)\nraw_df[\"passengers_bc_guerrero\"] = bc_guerrero.fit_transform(raw_df[\"passengers\"])\n\nplt.clf()\nraw_df[\"passengers_bc_guerrero\"].plot()\nplt.tight_layout()\nplt.show()"
+  },
+  {
+    "objectID": "topics/ts_decomposition/transformations.html#moving-averages",
+    "href": "topics/ts_decomposition/transformations.html#moving-averages",
+    "title": "Transformations",
+    "section": "Moving Averages",
+    "text": "Moving Averages\nMoving averages are a common technique for smoothing time series data, allowing for a clearer view of the underlying trend by reducing noise. With an odd-sized window, the moving average is symmetric, meaning it has an equal number of data points on either side of the center, which simplifies calculation and interpretation.\nWhen using an even-sized window, achieving symmetry is more challenging because there isn’t a natural center point. To create a balanced, symmetric effect, we can adjust the weights, assigning smaller weights to the edges while retaining higher weights for the central values. Another approach to achieve symmetry with an even window is to apply a secondary moving average of window size 2. This additional step smooths the edge values, effectively balancing the window weights.\n\n\nma_file_path = os.path.expanduser(\"~/Documents\") + \"\\\\DS_advanced_website\\\\data\\\\example_retail_sales.csv\"\nma_raw_df = pd.read_csv(ma_file_path, index_col=\"date\")\nma_raw_df.index = pd.to_datetime(ma_raw_df.index)\ndel ma_file_path\n\n\n3-Point Moving Average\nHere, we apply a 3-point moving average, which is symmetric by nature. This approach smooths out the data while retaining the central tendency, making it easier to observe general trends without the distraction of short-term fluctuations.\n\n\nma_df = ma_raw_df.copy()\nma_df[\"ma_3\"] = ma_df[\"sales\"].rolling(window=3, center=True).mean()\n\n\nplt.clf()\nma_df[\"ma_3\"].plot(color=\"steelblue\")\nma_df[\"sales\"].plot(color=\"grey\", alpha=0.7)\nplt.show()\n\n\n\n\n\n\n\n\n\n\n12-Point Moving Average with Centering\nTo create a symmetric 12-point moving average, we apply an additional 2-point moving average to our initial 12-point average. This second step reduces the impact of edge weights, creating a balanced smoothing effect. After this adjustment, we shift the result by half the window size to ensure alignment with the original data, resulting in a centered moving average.\n\n\neven_window_size = 12\nma_df[\"ma_2_12\"] = ma_df[\"sales\"].rolling(window=even_window_size).mean()\nma_df[\"ma_2_12\"] = ma_df[\"ma_2_12\"].rolling(window=2, center=True).mean()\nma_df[\"ma_2_12\"] = ma_df[\"ma_2_12\"].shift(-even_window_size // 2)\n\n\nplt.clf()\nma_df[\"ma_2_12\"].plot(color=\"steelblue\")\nma_df[\"sales\"].plot(color=\"grey\", alpha=0.7)\nplt.show()"
+  },
+  {
+    "objectID": "topics/ts_decomposition/transformations.html#summary",
+    "href": "topics/ts_decomposition/transformations.html#summary",
+    "title": "Transformations",
+    "section": "Summary",
+    "text": "Summary\nThis tutorial has demonstrated the use of log transformations, Box-Cox transformations, and moving averages to prepare time series data for analysis. Each transformation serves a specific purpose: log transformations reduce skewness and stabilize variance, Box-Cox transformations provide flexibility through parameter tuning, and moving averages smooth data for trend analysis. By understanding and applying these techniques, we can better handle data variability, enhance interpretability, and ultimately improve forecasting accuracy. The choice of transformation should align with the data characteristics and analytical goals, making transformations a valuable tool in the data scientist’s arsenal for managing diverse time series data."
+  },
+  {
+    "objectID": "topics/intro/forecaster_demo.html",
+    "href": "topics/intro/forecaster_demo.html",
+    "title": "Forecasting demonstration",
+    "section": "",
+    "text": "import pandas as pd\n\nimport numpy as np\n\nimport matplotlib.pyplot as plt\n\nimport os \n\nfrom feature_engine.timeseries.forecasting import LagFeatures\n\nfrom feature_engine.imputation import DropMissingData\n\nfrom feature_engine.selection import DropFeatures \n\nfrom sklearn.pipeline import Pipeline\n\nfrom sklearn.linear_model import LinearRegression\n\nfrom sklearn.metrics import root_mean_squared_error\nIn this section, we provide a brief demonstration of a forecasting problem using a simple Linear Regression model. The dataset used for this example consists of historical airline passenger numbers. Our goal is to demonstrate the forecasting process, including key steps such as feature engineering, model fitting, and forecast evaluation."
+  },
+  {
+    "objectID": "topics/intro/forecaster_demo.html#data-loading",
+    "href": "topics/intro/forecaster_demo.html#data-loading",
+    "title": "Forecasting demonstration",
+    "section": "Data loading",
+    "text": "Data loading\nThe dataset contains monthly data on the number of airline passengers from January 1949 to December 1960. This time series dataset is commonly used in forecasting examples due to its clear seasonal patterns and upward trend over time. The time index of the data represents the first day of each month, and the target variable is the number of passengers. The following code loads the dataset, ensures the date column is correctly parsed as a datetime object, and sets it as the index of the DataFrame.\n\n\nfile_path = os.path.expanduser(\"~/Documents\") + \"\\\\DS_advanced_website\\\\data\\\\example_air_passengers.csv\"\n\nraw_df = pd.read_csv(file_path,index_col = \"date\")\n\nraw_df.index = pd.to_datetime(raw_df.index)"
+  },
+  {
+    "objectID": "topics/intro/forecaster_demo.html#performance-evaluation",
+    "href": "topics/intro/forecaster_demo.html#performance-evaluation",
+    "title": "Forecasting demonstration",
+    "section": "Performance evaluation",
+    "text": "Performance evaluation\nTo evaluate the model’s performance, we calculate the Root Mean Squared Error (RMSE), a commonly used metric in forecasting. RMSE measures the average magnitude of the prediction errors, with lower values indicating a better fit between the predicted and actual values. By comparing the RMSE for both the training and test sets, we can gauge how well the model performs and whether it generalizes effectively to new data.\n\nprint(f\"Train set RMSE is {np.round(root_mean_squared_error(y_train, y_train_pred),2)}\")\n\nTrain set RMSE is 23.22\n\nprint(f\"Test set RMSE is {np.round(root_mean_squared_error(y_test, y_test_pred),2)}\")\n\nTest set RMSE is 49.64"
+  },
+  {
+    "objectID": "topics/intro/forecaster_demo.html#summary",
+    "href": "topics/intro/forecaster_demo.html#summary",
+    "title": "Forecasting demonstration",
+    "section": "Summary",
+    "text": "Summary\nIn this demonstration, we explored the basic steps of a time series forecasting task using airline passenger data. We processed the data by creating lagged features, trained a simple Linear Regression model, and evaluated the model’s performance using RMSE. This step-by-step approach shows how to handle feature engineering, model training, and performance evaluation in a forecasting scenario, providing a foundation for more advanced time series techniques."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Website for Advanced ML methods",
+    "section": "",
+    "text": "Forecast Demo\n\n\n\n\n \n\nDirect forecast\n\n\n\n\n \n\nRecursive forecast\n\n\n\n\n \n\nTransformations"
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this site\n\n1 + 1\n\n[1] 2"
+  },
+  {
+    "objectID": "topics/intro/direct_forecasting.html",
+    "href": "topics/intro/direct_forecasting.html",
+    "title": "Forecasting Interval (Multiple Periods Ahead) - Direct Approach",
+    "section": "",
+    "text": "import numpy as np\nimport pandas as pd\nfrom feature_engine.imputation import DropMissingData\nfrom feature_engine.selection import DropFeatures \nfrom feature_engine.timeseries.forecasting import LagFeatures\nfrom sklearn.linear_model import LinearRegression\nfrom sklearn.multioutput import MultiOutputRegressor\nfrom sklearn.metrics import root_mean_squared_error\nfrom sklearn.pipeline import Pipeline\nimport matplotlib.pyplot as plt\nimport os\nIn this tutorial, we will demonstrate a method for forecasting multiple periods ahead using a pipeline-based approach in Python. Specifically, we will use a direct approach for multi-step forecasting, where each future period within the forecast horizon is predicted independently. The direct approach allows us to generate a forecast for each individual time point in a given interval, which is helpful for applications that need predictions for multiple consecutive periods. For our demonstration, we’ll use a forecast interval of three periods, predicting the next, the following, and the third subsequent time point. This approach involves handling the challenges of preparing lagged data and synchronizing multiple targets across different forecast horizons.\nfile_path = os.path.expanduser(\"~/Documents\") + \"\\\\DS_advanced_website\\\\data\\\\example_air_passengers.csv\"\n\nraw_df = pd.read_csv(file_path,index_col = \"date\")\n\nraw_df.index = pd.to_datetime(raw_df.index)"
+  },
+  {
+    "objectID": "topics/intro/direct_forecasting.html#performance-evaluation",
+    "href": "topics/intro/direct_forecasting.html#performance-evaluation",
+    "title": "Forecasting Interval (Multiple Periods Ahead) - Direct Approach",
+    "section": "Performance evaluation",
+    "text": "Performance evaluation\nTo evaluate the model’s performance, we calculate the Root Mean Squared Error (RMSE), a commonly used metric in forecasting. RMSE measures the average magnitude of the prediction errors, with lower values indicating a better fit between the predicted and actual values. By comparing the RMSE for both the training and test sets, we can gauge how well the model performs and whether it generalizes effectively to new data.\n\nfor temp_h in range(forecast_horizon):\n  \n  y_pred_train = Y_train_pred[[f\"pred_{temp_h}\"]]\n  \n  y_actual_train = Y_train_processed[f\"h_{temp_h}\"]\n  \n  train_rmse = root_mean_squared_error(y_pred_train, y_actual_train)\n  \n  y_pred_test = Y_test_pred[[f\"pred_{temp_h}\"]]\n  \n  y_actual_test = Y_test_processed[f\"h_{temp_h}\"]\n  \n  test_rmse = root_mean_squared_error(y_pred_test, y_actual_test)\n  \n  print(f\"Train RMSE for horizon {temp_h} is {np.round(train_rmse,2)}, Test RMSE is {np.round(test_rmse,2)}\")\n\nTrain RMSE for horizon 0 is 22.73, Test RMSE is 49.69\nTrain RMSE for horizon 1 is 35.5, Test RMSE is 81.48\nTrain RMSE for horizon 2 is 42.48, Test RMSE is 99.33"
+  },
+  {
+    "objectID": "topics/intro/recursive_forecasting.html",
+    "href": "topics/intro/recursive_forecasting.html",
+    "title": "Forecasting Interval (Multiple Periods Ahead) - Recursive Approach",
+    "section": "",
+    "text": "In this tutorial, we demonstrate how to forecast multiple periods (or steps) ahead using a recursive approach, which is commonly applied in time series forecasting. The recursive approach involves using the model’s previous predictions as inputs for generating subsequent predictions. This iterative process is essential for making forecasts that extend over multiple time steps, especially in cases where future values depend on previous predictions. We’ll use this approach to build a forecasting model and evaluate its performance, covering essential preprocessing steps, model fitting, and accuracy measurement.\nimport numpy as np\n\nimport pandas as pd\n\nimport matplotlib.pyplot as plt\n\nimport seaborn as sns\n\nimport os \n\nfrom sklearn.pipeline import Pipeline\n\nfrom sklearn.base import clone\n\nfrom sklearn.linear_model import LinearRegression\n\nfrom feature_engine.timeseries.forecasting import LagFeatures\n\nfrom feature_engine.imputation import DropMissingData\n\nfrom feature_engine.selection import DropFeatures \n\nfrom sklearn.metrics import root_mean_squared_error\nfile_path = os.path.expanduser(\"~/Documents\") + \"\\\\DS_advanced_website\\\\data\\\\example_air_passengers.csv\"\n\nraw_df = pd.read_csv(file_path,index_col = \"date\")\n\nraw_df.index = pd.to_datetime(raw_df.index)"
+  },
+  {
+    "objectID": "topics/intro/recursive_forecasting.html#first-point",
+    "href": "topics/intro/recursive_forecasting.html#first-point",
+    "title": "Forecasting Interval (Multiple Periods Ahead) - Recursive Approach",
+    "section": "First Point",
+    "text": "First Point\nTo forecast the first point in the test set, we’ll use the last known value from the training set. This point will serve as the basis for predicting the next time step, and the prediction for this time step will then be used as an input to forecast subsequent steps.\n\n\nfeature_source_data = train_set.copy()\n\nfirst_forecast_date = train_set.index.max() + pd.DateOffset(months = 1)\n\nfeature_source_data.loc[first_forecast_date] = 0\n\nfeature_vec = feature_engine_pipe.transform(feature_source_data.copy())\n\nfeature_vec = feature_vec.iloc[[len(feature_vec) - 1]].copy()\n\nfirst_pred = lin_reg.predict(feature_vec)\n\nmanual_preds = pd.DataFrame(index = [first_forecast_date],\n                            data = first_pred)"
+  },
+  {
+    "objectID": "topics/intro/recursive_forecasting.html#second-point",
+    "href": "topics/intro/recursive_forecasting.html#second-point",
+    "title": "Forecasting Interval (Multiple Periods Ahead) - Recursive Approach",
+    "section": "Second Point",
+    "text": "Second Point\nFor the second prediction point, we take the forecasted value from the first point and incorporate it as the next input, following the recursive approach.\n\nfeature_source_data.loc[first_forecast_date] = first_pred\n\n&lt;string&gt;:2: FutureWarning: Setting an item of incompatible dtype is deprecated and will raise an error in a future version of pandas. Value '[344.3149789]' has dtype incompatible with int64, please explicitly cast to a compatible dtype first.\n\n\nsecond_forecast_date = first_forecast_date + pd.DateOffset(months = 1)\n\nfeature_source_data.loc[second_forecast_date] = 0\n\nfeature_vec = feature_engine_pipe.transform(feature_source_data.copy())\n\nfeature_vec = feature_vec.iloc[[len(feature_vec) - 1]].copy()\n\nsecond_pred = lin_reg.predict(feature_vec)\n\nmanual_preds = pd.concat([manual_preds,pd.DataFrame(index = [second_forecast_date],\n                            data = second_pred)], axis = 0).copy()\n\nmanual_preds.columns = [\"passengers\"]"
+  },
+  {
+    "objectID": "topics/intro/recursive_forecasting.html#performance-evaluation",
+    "href": "topics/intro/recursive_forecasting.html#performance-evaluation",
+    "title": "Forecasting Interval (Multiple Periods Ahead) - Recursive Approach",
+    "section": "Performance Evaluation",
+    "text": "Performance Evaluation\nTo evaluate the model’s performance, we calculate the Root Mean Squared Error (RMSE), a commonly used metric in forecasting. RMSE measures the average magnitude of the prediction errors, with lower values indicating a better fit between the predicted and actual values. By comparing the RMSE for both the training and test sets, we can gauge how well the model performs and whether it generalizes effectively to new data.\n\nfor temp_h in range(forecast_horizon):\n  \n  y_pred_train = Y_train_pred[[f\"pred_{temp_h}\"]]\n\n  y_actual_train = Y_train_pred[f\"h_{temp_h}\"]\n\n  train_rmse = root_mean_squared_error(y_pred_train, y_actual_train)\n  \n  y_pred_test = Y_test_pred[[f\"pred_{temp_h}\"]]\n  \n  y_actual_test = Y_test_pred[f\"h_{temp_h}\"]\n  \n  test_rmse = root_mean_squared_error(y_pred_test, y_actual_test)\n  \n  print(f\"Train RMSE for horizon {temp_h} is {np.round(train_rmse,2)},Test RMSE is {np.round(test_rmse,2)}\")\n\nTrain RMSE for horizon 0 is 22.75,Test RMSE is 49.35\nTrain RMSE for horizon 1 is 35.58,Test RMSE is 80.89\nTrain RMSE for horizon 2 is 42.59,Test RMSE is 98.79\n\n\nIn this tutorial, we successfully implemented a recursive forecasting approach, generating predictions that consider previously predicted values as inputs for future time steps. This method is particularly useful for extending forecasts over multiple periods, as each forecast builds upon the last. The evaluation metrics, especially RMSE, help us assess the model’s accuracy, demonstrating its predictive strength and ability to generalize to new data."
+  }
+]

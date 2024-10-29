@@ -2,7 +2,7 @@ project:
   type: website
 
 website:
-  title: "Website for Advanced ML methods (MTA)"
+  title: "Website for Advanced ML methods"
   navbar:
     left:
       - href: index.qmd
@@ -16,6 +16,5 @@ format:
     toc: true
 
 execute:
-  cache: true
   verbose: true
 

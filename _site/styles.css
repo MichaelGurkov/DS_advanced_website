@@ -1,0 +1,28 @@
+.image-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.image-container {
+  position: relative;
+  width: 80%;
+}
+
+.topic-image {
+  width: 80%;
+  height: auto;
+}
+
+.image-text {
+  position: absolute;
+  bottom: 18px;
+  left: 0px;
+  color: white;
+  font-size: 24px;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 5px 10px;
+  border-radius: 5px;
+}
