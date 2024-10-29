@@ -1,6 +1,5 @@
----
-title: "DS_advanced_website"
----
+
+<div class="image-grid">
 
 <div class="image-container">
   <a href="topics/intro/forecaster_demo.qmd">
@@ -8,6 +7,7 @@ title: "DS_advanced_website"
     <div class="image-text">Forecast Demo</div>
   </a>
 </div>
+
 
 <div class="image-container">
   <a href="topics/intro/direct_forecasting.qmd">
@@ -22,4 +22,14 @@ title: "DS_advanced_website"
     <img src="images/recursive_forecast.png" alt="Direct forecast" class="topic-image">
     <div class="image-text">Recursive forecast</div>
   </a>
+</div>
+
+<div class="image-container">
+  <a href="topics/ts_decomposition/transformations.qmd">
+    <img src="images/transformations.png" alt="Transformations" class="topic-image">
+    <div class="image-text">Transformations</div>
+  </a>
+</div>
+
+
 </div>
