@@ -16,6 +16,5 @@ format:
     toc: true
 
 execute:
-  cache: true
   verbose: true
 
