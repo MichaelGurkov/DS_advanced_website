@@ -1,35 +1,27 @@
+---
+title: "Time Series decomposition methods"
+---
 
-<div class="image-grid">
+<div class="text-grid">
 
-<div class="image-container">
-  <a href="">
-    <img src="../../images/intro.png" alt="Forecast Demo" class="topic-image">
-    <div class="image-text">Classical Decomposition</div>
+
+<div class="text-container">
+  <a href="class_decomp.qmd" class="text-block">
+    <div class="text-title">Classical Decomposition</div>
+  </a>
+</div>
+
+<div class="text-container">
+  <a href="" class="text-block">
+    <div class="text-title">Lowess Decomposition</div>
   </a>
 </div>
 
 
-<div class="image-container">
-  <a href="">
-    <img src="images/direct_forecast.png" alt="Direct forecast" class="topic-image">
-    <div class="image-text">Lowess Decomposition</div>
+<div class="text-container">
+  <a href="" class="text-block">
+    <div class="text-title">STL Decomposition</div>
   </a>
 </div>
-
-
-<div class="image-container">
-  <a href="">
-    <img src="images/recursive_forecast.png" alt="Direct forecast" class="topic-image">
-    <div class="image-text">Recursive forecast</div>
-  </a>
-</div>
-
-<div class="image-container">
-  <a href="">
-    <img src="images/transformations.png" alt="Transformations" class="topic-image">
-    <div class="image-text">STL decomposition</div>
-  </a>
-</div>
-
 
 </div>

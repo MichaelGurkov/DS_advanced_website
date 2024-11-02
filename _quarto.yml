@@ -3,7 +3,6 @@ project:
   output-dir: docs
 
 website:
-  title: "Website for Advanced ML methods"
   navbar:
     left:
       - href: index.qmd

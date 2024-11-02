@@ -26,3 +26,28 @@
   padding: 5px 10px;
   border-radius: 5px;
 }
+
+
+
+
+.text-container {
+  border: 2px dashed #707070;
+  padding: 20px;
+  margin-bottom: 40px;
+  text-align: center;
+  background-color: #f2f2f2;
+  background-image: repeating-linear-gradient(
+    45deg,
+    #f7f7f7,
+    #f7f7f7 10px,
+    #f2f2f2 10px,
+    #f2f2f2 20px
+  );
+}
+
+.text-title {
+  font-size: 30px;
+  font-family: 'Times New Roman', serif;
+  font-style: italic;
+  color: #505050;
+}

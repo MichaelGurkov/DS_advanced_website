@@ -1,0 +1,129 @@
+---
+title: "Classical Decomposition"
+---
+
+```{r set_up_python, echo=FALSE}
+#|echo: FALSE
+
+if (Sys.getenv("USERPROFILE") == "C:\\Users\\internet"){
+  
+  python_path = paste0("C:\\Users\\internet\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+} else {
+  
+  python_path = paste0("C:\\Users\\Home\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+}
+
+reticulate::use_python(python_path)
+
+```
+
+```{python}
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import os 
+
+```
+
+```{python import_data}
+
+file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_retail_sales.csv"
+
+raw_df = pd.read_csv(file_path,index_col = "date")
+raw_df.index = pd.to_datetime(raw_df.index)
+
+```
+
+## Introduction
+
+In time series analysis, breaking down a time series into its constituent components can provide valuable insights into the data's underlying structure. The classical decomposition method is a popular approach that isolates three key components: **Trend**, **Seasonality**, and **Remainder** (also called residuals or noise). The **Trend** component represents the long-term progression or direction of the data, while **Seasonality** captures repetitive, cyclical patterns that occur at regular intervals. The **Remainder** component, meanwhile, includes random variations or noise not accounted for by the trend or seasonality. In the classical decomposition approach, the trend is typically extracted using moving averages, which smooth out short-term fluctuations to reveal the underlying trend. This tutorial demonstrates how to apply classical decomposition to a retail sales dataset to isolate and examine each component, using a moving average to estimate the trend and group-based means to identify seasonality.
+
+## Trend
+
+In time series analysis, identifying the trend is crucial to understanding the long-term movement in data, as it shows the general direction or tendency over time. To estimate the trend effectively, we can use a moving average, which smooths out fluctuations, making the trend clearer by reducing the impact of random noise or seasonality. 
+
+The choice of window size for the moving average is significant: typically, it is set to match the frequency of the seasonality if it is known. For instance, with monthly data exhibiting annual seasonality, setting the window to 12 months captures the yearly cycle. By choosing a window size that encapsulates an entire seasonality cycle, we can "isolate" and average out the seasonality's effects. If the seasonality frequency is unknown, testing different window sizes and visually evaluating the resulting trend line can help. Choosing a too-small window leads to under-smoothing, which results in a trend line with excessive fluctuations. Conversely, an overly large window causes over-smoothing, where the trend line may appear flat and miss important trends in the data. 
+
+In the following code, we create both under-smoothed and over-smoothed trend lines to demonstrate these effects.
+
+```{python trend}
+
+trend_df = raw_df.copy()
+
+even_win_len = 84
+
+trend_df["over_smoothing"] = trend_df["sales"].rolling(window = even_win_len).mean()
+trend_df["over_smoothing"] = trend_df["over_smoothing"].rolling(window = 2, center = True).mean()
+trend_df["over_smoothing"] = trend_df["over_smoothing"].shift(- even_win_len // 2)
+
+trend_df["under_smoothing"] = trend_df["sales"].rolling(window = 3, center = True).mean()
+
+```
+
+```{python plot_over_under_smoothing}
+
+plt.clf()
+
+trend_df["sales"].plot(color = "grey", alpha = 0.5)
+trend_df["under_smoothing"].plot(color = "steelblue")
+trend_df["over_smoothing"].plot(color = "orange")
+
+plt.legend()
+plt.show()
+
+```
+
+### Cross-validation for Trend Estimation
+
+To ensure that we select an optimal window size for the trend component, cross-validation can be used as a more rigorous method. By partitioning the data into training and test sets and evaluating the trend's predictive accuracy on unseen data, we can refine our choice of window size based on empirical evidence rather than visual inspection alone. This approach can help balance under-smoothing and over-smoothing, leading to a trend line that effectively represents the underlying pattern in the data.
+
+## Seasonality
+
+Seasonality refers to periodic fluctuations in data that occur at regular intervals due to factors like seasons, quarters, or months. To extract seasonality from a time series, the trend component must first be isolated and removed. This is done by detrending the data: subtracting the trend if the seasonality is additive or dividing by the trend if it is multiplicative. Once detrended, the data can reveal the repetitive seasonal pattern, allowing us to capture the recurring variations.
+
+In the following code, we apply a rolling mean to determine the trend, then detrend the data by subtracting this trend from the original sales data. After detrending, we group the data by month to calculate average seasonal effects, which enables us to isolate and visualize the seasonality. The resulting seasonal component shows the monthly effect after excluding the trend.
+
+```{python seasonality}
+
+season_df = raw_df.copy()
+
+season_df["trend"] = season_df["sales"].rolling(window = 12).mean()
+season_df["trend"] = season_df["trend"].rolling(window = 2, center = True).mean()
+season_df["trend"] = season_df["trend"].shift(- 12 // 2)
+
+season_df["detrended_data"] = season_df["sales"] - season_df["trend"]
+
+season_df["month"] = season_df.index.month
+seasonality = season_df.groupby("month").mean()["detrended_data"].reset_index()
+
+seasonality.columns = ["month","seasonality"]
+season_df = pd.merge(season_df.copy(), seasonality, on = "month", how = "left")
+
+season_df["remainder"] = season_df["detrended_data"] - season_df["seasonality"]
+
+```
+
+```{python }
+
+plt.clf()
+
+fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(8, 12))
+
+season_df["trend"].plot(ax = axes[0], title = "Trend")
+season_df["seasonality"].plot(ax = axes[1], title = "Seasonality")
+season_df["remainder"].plot(ax = axes[2], title = "Remainder")
+
+# Adjust layout to avoid overlap
+plt.tight_layout(pad = 3.0)
+
+# Show the plot
+plt.show()
+
+```
+
+## Summary
+
+Through the classical decomposition method, we successfully isolated the trend, seasonality, and remainder components of a time series, offering a clearer view of each component's influence on the data. By using moving averages, we smoothed out short-term noise to identify the trend and then detrended the data to reveal seasonality. This process allowed us to break down the time series into interpretable parts, providing insights into underlying patterns and variability. Such decomposition is essential in time series analysis, as it enhances the forecasting accuracy and interpretability of models by focusing on distinct data patterns. This approach is valuable in various domains, from retail sales to finance, where understanding the interplay between trend and seasonal effects is critical for decision-making.
