@@ -2,9 +2,37 @@
   {
     "objectID": "topics/ts_decomposition/ts_decomposition_page.html",
     "href": "topics/ts_decomposition/ts_decomposition_page.html",
-    "title": "Website for Advanced ML methods",
+    "title": "Time Series decomposition methods",
     "section": "",
-    "text": "Forecast Demo\n\n\n\n\n \n\nDirect forecast\n\n\n\n\n \n\nRecursive forecast\n\n\n\n\n \n\nTransformations"
+    "text": "Classical Decomposition\n\n\n\n\n\n\nLowess Decomposition\n\n\n\n\n\n\nSTL Decomposition"
+  },
+  {
+    "objectID": "topics/ts_decomposition/lowess_decomp.html",
+    "href": "topics/ts_decomposition/lowess_decomp.html",
+    "title": "LOWESS to Extract the Trend",
+    "section": "",
+    "text": "import numpy as np\n\nimport pandas as pd\n\nimport matplotlib.pyplot as plt\n\nimport os \n\nfrom statsmodels.nonparametric.smoothers_lowess import lowess\n\nfrom sklearn.metrics import mean_squared_error\n\nfrom sklearn.model_selection import KFold\nfile_path = os.path.expanduser(\"~/Documents\") + \"\\\\DS_advanced_website\\\\data\\\\example_retail_sales.csv\"\n\nraw_df = pd.read_csv(file_path,index_col = \"date\")\n\nraw_df.index = pd.to_datetime(raw_df.index)"
+  },
+  {
+    "objectID": "topics/ts_decomposition/lowess_decomp.html#introduction",
+    "href": "topics/ts_decomposition/lowess_decomp.html#introduction",
+    "title": "LOWESS to Extract the Trend",
+    "section": "Introduction",
+    "text": "Introduction\nIn time series analysis, data often contains inherent noise that can obscure trends and patterns, making it challenging to analyze or forecast accurately. Smoothing techniques are valuable for filtering out this noise, and one popular method is Locally Weighted Scatterplot Smoothing (LOWESS). LOWESS is a non-parametric regression method that applies localized, weighted linear regressions to generate a smoothed trend line over the data. This tutorial provides an in-depth guide to using LOWESS for time series decomposition, including an explanation of its parameters and a demonstration of cross-validation to select the optimal smoothing factor. By the end, you’ll understand how to tune LOWESS to achieve an effective decomposition of your data and isolate its trend component.\nWe will use the retail sales dataset.\n\nraw_df[\"sales\"].plot()\n\nplt.show()"
+  },
+  {
+    "objectID": "topics/ts_decomposition/lowess_decomp.html#lowess-parameters",
+    "href": "topics/ts_decomposition/lowess_decomp.html#lowess-parameters",
+    "title": "LOWESS to Extract the Trend",
+    "section": "LOWESS Parameters",
+    "text": "LOWESS Parameters\nLOWESS, or Locally Weighted Scatterplot Smoothing, is a method used to smooth data points in a time series or other types of datasets with a lot of noise. It does so by fitting multiple linear regressions over subsets of data, or “windows.” In the Python implementation of LOWESS from the statsmodels library, several key parameters influence the outcome of this smoothing. These include frac, it, endog, and exog.\n\nfrac: This parameter controls the fraction of data points used to compute each local regression. It effectively determines the window size in the smoothing process. A smaller frac value means that fewer points are used in each regression, leading to a curve that follows the data more closely (less smoothing). A larger frac value, in contrast, results in greater smoothing as more points are included in each local regression.\nit: The it parameter specifies the number of iterations in the robust regression process. Robust regression helps handle outliers in the data by down-weighting points that deviate significantly from the trend. Increasing it results in more iterations to identify and adjust for outliers, potentially improving the robustness of the trend line.\nendog and exog: These parameters define the endogenous (dependent) and exogenous (independent) variables for the LOWESS fitting process. In this case, endog (or y) represents the variable we wish to smooth (e.g., “sales” in a time series), while exog (or x) is the independent variable, typically the index of the dataset or time variable. Specifying endog and exog allows LOWESS to map out the trend of endog against exog.\n\nThe following code snippet applies LOWESS to our dataset, using the specified parameters to calculate a smoothed trend line for a time series of sales data.\nA too-high frac value can result in over-smoothing, where essential details in the data are averaged out and the trend appears excessively flat. Conversely, a too-low frac value may under-smooth the data, capturing noise and failing to reveal the true trend. Here, we intentionally set a higher frac value to demonstrate some degree of over-smoothing; in the next section, we will determine an optimal frac value using cross-validation.\n\n\ny = raw_df[\"sales\"]\n\nx = np.arange(0, len(y))\n\nts_decomp = lowess(endog=y, exog=x, frac=0.5, it=3)\n\nraw_df[\"trend_lowess\"] = ts_decomp[:,1]\n\n\nplt.clf()\n\nraw_df[\"sales\"].plot(color=\"steelblue\")\n\nraw_df[\"trend_lowess\"].plot(color=\"orange\")\n\nplt.show()\n\n\n\n\n\n\n\n\n\nCross-Validation to Select the Appropriate Fraction Parameter\nTo ensure that the LOWESS smoothing is optimally tuned for our data, we can use cross-validation to select the best frac parameter. By testing multiple frac values, we aim to find a balance between smoothness and accuracy, ultimately minimizing the root mean squared error (RMSE) between observed and predicted values in a test set. The KFold cross-validation approach is used here to split the dataset into training and test sets multiple times, thereby enhancing the reliability of our RMSE estimates.\nIn the function get_rmse_for_df, we implement this cross-validation procedure for each candidate frac value. The function uses the KFold technique, splitting the data into five folds and iterating over them to calculate the RMSE of predictions for each fold. By doing this, we measure how well each frac parameter fits the data, and select the one with the lowest average RMSE, which indicates the optimal balance of fit and smoothness.\nIn the code snippet below, we calculate the RMSE for various values of frac and collect the results. This allows us to compare different frac settings and choose the one that minimizes error.\n\n\ndef get_rmse_for_df(X, y, frac_param):\n  KFold_obj = KFold(n_splits=5, shuffle=True, random_state=0)\n  rmse_list = []\n  for train_index, test_index in KFold_obj.split(X, y):\n    X_train = X[train_index]\n    y_train = y.iloc[train_index]\n    X_test = X[test_index]\n    y_test = y.iloc[test_index]\n    y_pred = lowess(endog=y_train, exog=X_train, frac=frac_param, xvals=X_test)\n    rmse = np.sqrt(mean_squared_error(y_pred, y_test))\n    rmse_list.append(rmse)\n  return rmse_list\n\n\nresults = []\n\nfor temp_frac in np.arange(0.05, 1.02, 0.05):\n  rmse_list = get_rmse_for_df(X=x, y=y, frac_param=temp_frac)\n  rmse_df = pd.DataFrame(data=rmse_list, columns=[\"rmse\"])\n  rmse_df[\"frac\"] = temp_frac\n  results.append(rmse_df)\n\n  \nresults = pd.concat(results, axis=0)\n  \n\n\ncv_plot_df = results.groupby(\"frac\")[\"rmse\"].agg([\"mean\", \"std\"]).reset_index()\n\nplt.figure(figsize=(8, 5))\n\nplt.errorbar(cv_plot_df['frac'],\n             cv_plot_df['mean'],\n             yerr=cv_plot_df['std'],\n             fmt='o',\n             capsize=5,\n             capthick=1,\n             elinewidth=1)\n\nplt.title('Mean RMSE with Standard Deviation Error Bars')\n\nplt.show()\n\n\n\n\n\n\n\n\nThe RMSE values have a considerable spread, as indicated by the length of the error bars. A large spread (standard deviation) suggests that there is significant variability in RMSE across the cross-validation folds. Despite this variability, we will proceed with the minimal frac value identified, as it represents an improvement over the higher value used in the previous section. This will allow us to demonstrate how the optimal value enhances the balance between smoothness and trend accuracy.\n\nbest_frac = cv_plot_df.sort_values([\"mean\"]).iloc[0,0]\n\nprint(f\"The best frac value is {np.round(best_frac,2)}\")\n\nThe best frac value is 0.15\n\n\n\nts_decomp = lowess(endog=y, exog=x, frac=best_frac, it=3)\n\nraw_df[\"trend_lowess_best\"] = ts_decomp[:,1]\n\n\nplt.clf()\n\nraw_df[\"sales\"].plot(color=\"steelblue\")\n\nraw_df[\"trend_lowess_best\"].plot(color=\"orange\")\n\nplt.show()"
+  },
+  {
+    "objectID": "topics/ts_decomposition/lowess_decomp.html#summary",
+    "href": "topics/ts_decomposition/lowess_decomp.html#summary",
+    "title": "LOWESS to Extract the Trend",
+    "section": "Summary",
+    "text": "Summary\nIn this tutorial, we explored how to use LOWESS for time series decomposition and trend extraction. By understanding and adjusting the parameters of frac, it, endog, and exog, we can fine-tune the smoothing process to better reveal underlying trends in our data. We also implemented a cross-validation technique to help identify the optimal frac parameter, balancing accuracy and smoothness. This approach is especially useful in time series analysis, where accurate trend estimation plays a key role in forecasting and insights. Through LOWESS and parameter tuning, we can effectively isolate and analyze the trends within complex datasets, enhancing our understanding of the data’s behavior over time."
   },
   {
     "objectID": "topics/intro/recursive_forecasting.html",
@@ -58,9 +86,9 @@
   {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "Website for Advanced ML methods",
+    "title": "",
     "section": "",
-    "text": "Forecast Demo\n\n\n\n\n \n\nDirect forecast\n\n\n\n\n \n\nRecursive forecast\n\n\n\n\n \n\nTransformations\n\n\n\n\n \n\nTime Series Decomposition"
+    "text": "Forecast Demo\n\n\n\n\n \n\nDirect forecast\n\n\n\n\n \n\nRecursive forecast\n\n\n\n\n \n\nTransformations\n\n\n\n\n \n\nTime SeriesDecomposition"
   },
   {
     "objectID": "topics/intro/forecaster_demo.html",
@@ -89,6 +117,41 @@
     "title": "Forecasting demonstration",
     "section": "Summary",
     "text": "Summary\nIn this demonstration, we explored the basic steps of a time series forecasting task using airline passenger data. We processed the data by creating lagged features, trained a simple Linear Regression model, and evaluated the model’s performance using RMSE. This step-by-step approach shows how to handle feature engineering, model training, and performance evaluation in a forecasting scenario, providing a foundation for more advanced time series techniques."
+  },
+  {
+    "objectID": "topics/ts_decomposition/class_decomp.html",
+    "href": "topics/ts_decomposition/class_decomp.html",
+    "title": "Classical Decomposition",
+    "section": "",
+    "text": "import numpy as np\nimport pandas as pd\nimport matplotlib.pyplot as plt\nimport os\nfile_path = os.path.expanduser(\"~/Documents\") + \"\\\\DS_advanced_website\\\\data\\\\example_retail_sales.csv\"\n\nraw_df = pd.read_csv(file_path,index_col = \"date\")\nraw_df.index = pd.to_datetime(raw_df.index)"
+  },
+  {
+    "objectID": "topics/ts_decomposition/class_decomp.html#introduction",
+    "href": "topics/ts_decomposition/class_decomp.html#introduction",
+    "title": "Classical Decomposition",
+    "section": "Introduction",
+    "text": "Introduction\nIn time series analysis, breaking down a time series into its constituent components can provide valuable insights into the data’s underlying structure. The classical decomposition method is a popular approach that isolates three key components: Trend, Seasonality, and Remainder (also called residuals or noise). The Trend component represents the long-term progression or direction of the data, while Seasonality captures repetitive, cyclical patterns that occur at regular intervals. The Remainder component, meanwhile, includes random variations or noise not accounted for by the trend or seasonality. In the classical decomposition approach, the trend is typically extracted using moving averages, which smooth out short-term fluctuations to reveal the underlying trend. This tutorial demonstrates how to apply classical decomposition to a retail sales dataset to isolate and examine each component, using a moving average to estimate the trend and group-based means to identify seasonality."
+  },
+  {
+    "objectID": "topics/ts_decomposition/class_decomp.html#trend",
+    "href": "topics/ts_decomposition/class_decomp.html#trend",
+    "title": "Classical Decomposition",
+    "section": "Trend",
+    "text": "Trend\nIn time series analysis, identifying the trend is crucial to understanding the long-term movement in data, as it shows the general direction or tendency over time. To estimate the trend effectively, we can use a moving average, which smooths out fluctuations, making the trend clearer by reducing the impact of random noise or seasonality.\nThe choice of window size for the moving average is significant: typically, it is set to match the frequency of the seasonality if it is known. For instance, with monthly data exhibiting annual seasonality, setting the window to 12 months captures the yearly cycle. By choosing a window size that encapsulates an entire seasonality cycle, we can “isolate” and average out the seasonality’s effects. If the seasonality frequency is unknown, testing different window sizes and visually evaluating the resulting trend line can help. Choosing a too-small window leads to under-smoothing, which results in a trend line with excessive fluctuations. Conversely, an overly large window causes over-smoothing, where the trend line may appear flat and miss important trends in the data.\nIn the following code, we create both under-smoothed and over-smoothed trend lines to demonstrate these effects.\n\n\ntrend_df = raw_df.copy()\n\neven_win_len = 84\n\ntrend_df[\"over_smoothing\"] = trend_df[\"sales\"].rolling(window = even_win_len).mean()\ntrend_df[\"over_smoothing\"] = trend_df[\"over_smoothing\"].rolling(window = 2, center = True).mean()\ntrend_df[\"over_smoothing\"] = trend_df[\"over_smoothing\"].shift(- even_win_len // 2)\n\ntrend_df[\"under_smoothing\"] = trend_df[\"sales\"].rolling(window = 3, center = True).mean()\n\n\nplt.clf()\n\ntrend_df[\"sales\"].plot(color = \"grey\", alpha = 0.5)\ntrend_df[\"under_smoothing\"].plot(color = \"steelblue\")\ntrend_df[\"over_smoothing\"].plot(color = \"orange\")\n\nplt.legend()\nplt.show()\n\n\n\n\n\n\n\n\n\nCross-validation for Trend Estimation\nTo ensure that we select an optimal window size for the trend component, cross-validation can be used as a more rigorous method. By partitioning the data into training and test sets and evaluating the trend’s predictive accuracy on unseen data, we can refine our choice of window size based on empirical evidence rather than visual inspection alone. This approach can help balance under-smoothing and over-smoothing, leading to a trend line that effectively represents the underlying pattern in the data."
+  },
+  {
+    "objectID": "topics/ts_decomposition/class_decomp.html#seasonality",
+    "href": "topics/ts_decomposition/class_decomp.html#seasonality",
+    "title": "Classical Decomposition",
+    "section": "Seasonality",
+    "text": "Seasonality\nSeasonality refers to periodic fluctuations in data that occur at regular intervals due to factors like seasons, quarters, or months. To extract seasonality from a time series, the trend component must first be isolated and removed. This is done by detrending the data: subtracting the trend if the seasonality is additive or dividing by the trend if it is multiplicative. Once detrended, the data can reveal the repetitive seasonal pattern, allowing us to capture the recurring variations.\nIn the following code, we apply a rolling mean to determine the trend, then detrend the data by subtracting this trend from the original sales data. After detrending, we group the data by month to calculate average seasonal effects, which enables us to isolate and visualize the seasonality. The resulting seasonal component shows the monthly effect after excluding the trend.\n\n\nseason_df = raw_df.copy()\n\nseason_df[\"trend\"] = season_df[\"sales\"].rolling(window = 12).mean()\nseason_df[\"trend\"] = season_df[\"trend\"].rolling(window = 2, center = True).mean()\nseason_df[\"trend\"] = season_df[\"trend\"].shift(- 12 // 2)\n\nseason_df[\"detrended_data\"] = season_df[\"sales\"] - season_df[\"trend\"]\n\nseason_df[\"month\"] = season_df.index.month\nseasonality = season_df.groupby(\"month\").mean()[\"detrended_data\"].reset_index()\n\nseasonality.columns = [\"month\",\"seasonality\"]\nseason_df = pd.merge(season_df.copy(), seasonality, on = \"month\", how = \"left\")\n\nseason_df[\"remainder\"] = season_df[\"detrended_data\"] - season_df[\"seasonality\"]\n\n\nplt.clf()\n\nfig, axes = plt.subplots(nrows=3, ncols=1, figsize=(8, 12))\n\nseason_df[\"trend\"].plot(ax = axes[0], title = \"Trend\")\nseason_df[\"seasonality\"].plot(ax = axes[1], title = \"Seasonality\")\nseason_df[\"remainder\"].plot(ax = axes[2], title = \"Remainder\")\n\n# Adjust layout to avoid overlap\nplt.tight_layout(pad = 3.0)\n\n# Show the plot\nplt.show()"
+  },
+  {
+    "objectID": "topics/ts_decomposition/class_decomp.html#summary",
+    "href": "topics/ts_decomposition/class_decomp.html#summary",
+    "title": "Classical Decomposition",
+    "section": "Summary",
+    "text": "Summary\nThrough the classical decomposition method, we successfully isolated the trend, seasonality, and remainder components of a time series, offering a clearer view of each component’s influence on the data. By using moving averages, we smoothed out short-term noise to identify the trend and then detrended the data to reveal seasonality. This process allowed us to break down the time series into interpretable parts, providing insights into underlying patterns and variability. Such decomposition is essential in time series analysis, as it enhances the forecasting accuracy and interpretability of models by focusing on distinct data patterns. This approach is valuable in various domains, from retail sales to finance, where understanding the interplay between trend and seasonal effects is critical for decision-making."
   },
   {
     "objectID": "topics/ts_decomposition/transformations.html",

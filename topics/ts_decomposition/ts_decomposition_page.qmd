@@ -12,7 +12,7 @@ title: "Time Series decomposition methods"
 </div>
 
 <div class="text-container">
-  <a href="" class="text-block">
+  <a href="lowess_decomp.qmd" class="text-block">
     <div class="text-title">Lowess Decomposition</div>
   </a>
 </div>
@@ -20,8 +20,8 @@ title: "Time Series decomposition methods"
 
 <div class="text-container">
   <a href="" class="text-block">
-    <div class="text-title">STL Decomposition</div>
+    <div class="text-title" style="opacity: 0.7;">STL Decomposition</div>
   </a>
-</div>
+  </div>
 
 </div>
