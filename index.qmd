@@ -32,4 +32,13 @@
 </div>
 
 
+<div class="image-container">
+  <a href="topics/ts_decomposition/ts_decomposition_page.qmd">
+    <img src="images/transformations.png" alt="Transformations" class="topic-image">
+    <div class="image-text">Time Series Decomposition</div>
+  </a>
+</div>
+
+
+
 </div>
