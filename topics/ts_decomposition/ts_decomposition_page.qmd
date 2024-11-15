@@ -19,8 +19,8 @@ title: "Time Series decomposition methods"
 
 
 <div class="text-container">
-  <a href="" class="text-block">
-    <div class="text-title" style="opacity: 0.7;">STL Decomposition</div>
+  <a href="stl_decomp.qmd" class="text-block">
+    <div class="text-title">STL Decomposition</div>
   </a>
   </div>
 
