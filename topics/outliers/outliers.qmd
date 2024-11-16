@@ -1,0 +1,226 @@
+---
+title: "Outliers"
+---
+
+## Introduction
+
+Handling missing data and outliers is a critical step in data preprocessing. Missing or anomalous values can distort statistical analysis and predictive modeling, leading to unreliable results. In this tutorial, we focus on identifying and imputing outliers in a time series dataset, which involves deseasonalizing the data, detecting anomalies using statistical methods, and imputing these anomalies with appropriate techniques. This guide demonstrates how to achieve these steps using Python, providing both theoretical explanations and practical code implementation.
+
+```{r set_up_python, echo=FALSE}
+#|echo: FALSE
+
+if (Sys.getenv("USERPROFILE") == "C:\\Users\\internet"){
+  
+  python_path = paste0("C:\\Users\\internet\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+} else {
+  
+  python_path = paste0("C:\\Users\\Home\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+}
+
+reticulate::use_python(python_path)
+
+```
+
+```{python}
+
+import numpy as np
+
+import pandas as pd
+
+import matplotlib.pyplot as plt
+
+import os 
+
+from statsmodels.tsa.seasonal import STL
+
+```
+
+```{python import_data}
+
+file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_retail_sales_outliers.csv"
+
+raw_df = pd.read_csv(file_path,index_col = "date")
+
+raw_df.index = pd.to_datetime(raw_df.index)
+
+
+```
+
+```{python plot_outliers}
+
+plt.clf()
+
+raw_df["sales"].plot(marker = ".")
+
+plt.show()
+
+```
+
+## Deseasonalize Data
+
+Seasonal patterns in time series data can obscure anomalies. To effectively identify outliers, we first deseasonalize the data. This process involves decomposing the time series into seasonal, trend, and residual components and removing the seasonal component. This ensures that the seasonality does not interfere with our analysis of deviations from expected patterns.
+
+```{python deaseasonlise}
+
+stl_decomp = STL(raw_df["sales"], robust = True).fit()
+
+seasonal_component = stl_decomp.seasonal
+
+raw_df["sales_deseasonalised"] = raw_df["sales"] - seasonal_component
+
+```
+
+```{python plot_deseason}
+
+plt.clf()
+
+raw_df["sales_deseasonalised"].plot(marker = ".")
+
+plt.title("Deseasonlalized data with outliers")
+
+plt.show()
+```
+
+## Identify Outliers
+
+Outlier detection involves identifying data points that deviate significantly from the expected range. Here, the expected value is estimated using rolling statistics, and the margin is defined by the variability around this expectation. Two approaches are used: rolling mean and standard deviation, and rolling median with median absolute deviation (MAD).
+
+### Rolling Mean and Standard Deviation
+
+Rolling mean and standard deviation provide a straightforward way to calculate the expected value and variability. However, they are sensitive to outliers, as extreme values can skew these measures. To identify outliers, we calculate the rolling mean and standard deviation over a sliding window and define thresholds for outlier detection.
+
+```{python }
+
+raw_df[["roll_mean","roll_std"]] = (
+                
+                raw_df["sales_deseasonalised"]
+                .rolling(window = 13,center = True, min_periods = 1)
+                .agg({"roll_mean":"mean", "roll_std":"std"})
+  
+)
+
+```
+
+```{python flag_outliers_mean}
+
+margin_factor = 3
+
+raw_df["upper"] = raw_df["roll_mean"] + margin_factor * raw_df["roll_std"]
+
+raw_df["lower"] = raw_df["roll_mean"] - margin_factor * raw_df["roll_std"]
+
+raw_df["is_outlier"] = np.abs((raw_df["sales_deseasonalised"] <= raw_df["lower"]) |
+                              (raw_df["sales_deseasonalised"] >= raw_df["upper"]))
+
+```
+
+```{python  plot_outlier_mean}
+
+plt.clf()
+
+ax = raw_df["sales_deseasonalised"].plot()
+
+raw_df["upper"].plot(ax = ax, color = "black", linestyle = "dashed")
+
+raw_df.loc[raw_df["is_outlier"],"sales_deseasonalised"].plot(ax = ax,
+                                                             color = "red",
+                                                             marker = "o",
+                                                             linestyle = "none")
+
+plt.show()
+
+
+```
+
+### Rolling Median and Median Absolute Deviation
+
+Median and MAD are robust to outliers, making them suitable for datasets with extreme values. The rolling median serves as the expected value, and MAD provides a robust measure of variability. This method ensures that the detection of outliers is not overly influenced by extreme data points.
+
+```{python }
+
+def mad(x):
+  return np.median(np.abs(x - np.median(x)))
+
+raw_df[["roll_median","roll_mad"]] = (
+                
+                raw_df["sales_deseasonalised"]
+                .rolling(window = 13,center = True, min_periods = 1)
+                .agg({"roll_median":"median", "roll_mad":mad})
+  
+)
+
+```
+
+```{python flag_outliers_median}
+
+margin_factor = 3
+
+raw_df["upper_2"] = raw_df["roll_median"] + margin_factor * raw_df["roll_mad"]
+
+raw_df["lower_2"] = raw_df["roll_median"] - margin_factor * raw_df["roll_mad"]
+
+raw_df["is_outlier_2"] = np.abs((raw_df["sales_deseasonalised"] <= raw_df["lower_2"]) |
+                              (raw_df["sales_deseasonalised"] >= raw_df["upper_2"]))
+
+```
+
+```{python  plot_outlier_median}
+
+plt.clf()
+
+ax = raw_df["sales_deseasonalised"].plot()
+
+raw_df["upper_2"].plot(ax = ax, color = "black", linestyle = "dashed")
+
+raw_df["lower_2"].plot(ax = ax, color = "black", linestyle = "dashed")
+
+raw_df.loc[raw_df["is_outlier_2"],"sales_deseasonalised"].plot(ax = ax,
+                                                             color = "red",
+                                                             marker = "o",
+                                                             linestyle = "none")
+
+plt.show()
+
+
+```
+
+## Impute Outliers
+
+To handle outliers, we replace them with imputed values. For demonstration purposes, linear interpolation is used. This technique fills missing or anomalous values by estimating intermediate points using a linear function based on surrounding data.
+
+```{python impute_outlier}
+
+raw_df["sales_na"] = raw_df["sales_deseasonalised"]
+
+raw_df.loc[raw_df["is_outlier_2"],"sales_na"] = np.nan
+
+raw_df["sales_imputed"] = raw_df["sales_na"].interpolate(method = "time").copy()
+
+
+```
+
+```{python plot_imputed_outlier}
+
+plt.clf()
+
+ax = raw_df["sales_imputed"].plot()
+
+raw_df.loc[raw_df["is_outlier_2"],"sales_imputed"].plot(ax = ax,
+                                                      alpha = 0.5,
+                                                      color = "red",
+                                                      marker = "o",
+                                                      linestyle = "none")
+
+plt.title("Imputed outliers")
+
+
+plt.show()
+
+
+```
+
+## Summary
+
+This tutorial demonstrated a systematic approach to handling outliers in a time series dataset. Starting with deseasonalizing the data, we explored two methods for outlier detection: rolling mean and standard deviation, and rolling median with MAD. Finally, we showed how to impute outliers using linear interpolation. This workflow ensures a cleaner dataset for further analysis or modeling, enhancing the accuracy and reliability of the results.

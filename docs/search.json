@@ -77,90 +77,6 @@
     "text": "Summary\nThrough the classical decomposition method, we successfully isolated the trend, seasonality, and remainder components of a time series, offering a clearer view of each component’s influence on the data. By using moving averages, we smoothed out short-term noise to identify the trend and then detrended the data to reveal seasonality. This process allowed us to break down the time series into interpretable parts, providing insights into underlying patterns and variability. Such decomposition is essential in time series analysis, as it enhances the forecasting accuracy and interpretability of models by focusing on distinct data patterns. This approach is valuable in various domains, from retail sales to finance, where understanding the interplay between trend and seasonal effects is critical for decision-making."
   },
   {
-    "objectID": "topics/intro/recursive_forecasting.html",
-    "href": "topics/intro/recursive_forecasting.html",
-    "title": "Forecasting Interval (Multiple Periods Ahead) - Recursive Approach",
-    "section": "",
-    "text": "In this tutorial, we demonstrate how to forecast multiple periods (or steps) ahead using a recursive approach, which is commonly applied in time series forecasting. The recursive approach involves using the model’s previous predictions as inputs for generating subsequent predictions. This iterative process is essential for making forecasts that extend over multiple time steps, especially in cases where future values depend on previous predictions. We’ll use this approach to build a forecasting model and evaluate its performance, covering essential preprocessing steps, model fitting, and accuracy measurement.\nimport numpy as np\n\nimport pandas as pd\n\nimport matplotlib.pyplot as plt\n\nimport seaborn as sns\n\nimport os \n\nfrom sklearn.pipeline import Pipeline\n\nfrom sklearn.base import clone\n\nfrom sklearn.linear_model import LinearRegression\n\nfrom feature_engine.timeseries.forecasting import LagFeatures\n\nfrom feature_engine.imputation import DropMissingData\n\nfrom feature_engine.selection import DropFeatures \n\nfrom sklearn.metrics import root_mean_squared_error\nfile_path = os.path.expanduser(\"~/Documents\") + \"\\\\DS_advanced_website\\\\data\\\\example_air_passengers.csv\"\n\nraw_df = pd.read_csv(file_path,index_col = \"date\")\n\nraw_df.index = pd.to_datetime(raw_df.index)"
-  },
-  {
-    "objectID": "topics/intro/recursive_forecasting.html#first-point",
-    "href": "topics/intro/recursive_forecasting.html#first-point",
-    "title": "Forecasting Interval (Multiple Periods Ahead) - Recursive Approach",
-    "section": "First Point",
-    "text": "First Point\nTo forecast the first point in the test set, we’ll use the last known value from the training set. This point will serve as the basis for predicting the next time step, and the prediction for this time step will then be used as an input to forecast subsequent steps.\n\n\nfeature_source_data = train_set.copy()\n\nfirst_forecast_date = train_set.index.max() + pd.DateOffset(months = 1)\n\nfeature_source_data.loc[first_forecast_date] = 0\n\nfeature_vec = feature_engine_pipe.transform(feature_source_data.copy())\n\nfeature_vec = feature_vec.iloc[[len(feature_vec) - 1]].copy()\n\nfirst_pred = lin_reg.predict(feature_vec)\n\nmanual_preds = pd.DataFrame(index = [first_forecast_date],\n                            data = first_pred)"
-  },
-  {
-    "objectID": "topics/intro/recursive_forecasting.html#second-point",
-    "href": "topics/intro/recursive_forecasting.html#second-point",
-    "title": "Forecasting Interval (Multiple Periods Ahead) - Recursive Approach",
-    "section": "Second Point",
-    "text": "Second Point\nFor the second prediction point, we take the forecasted value from the first point and incorporate it as the next input, following the recursive approach.\n\nfeature_source_data.loc[first_forecast_date] = first_pred\n\n&lt;string&gt;:2: FutureWarning: Setting an item of incompatible dtype is deprecated and will raise an error in a future version of pandas. Value '[344.3149789]' has dtype incompatible with int64, please explicitly cast to a compatible dtype first.\n\n\nsecond_forecast_date = first_forecast_date + pd.DateOffset(months = 1)\n\nfeature_source_data.loc[second_forecast_date] = 0\n\nfeature_vec = feature_engine_pipe.transform(feature_source_data.copy())\n\nfeature_vec = feature_vec.iloc[[len(feature_vec) - 1]].copy()\n\nsecond_pred = lin_reg.predict(feature_vec)\n\nmanual_preds = pd.concat([manual_preds,pd.DataFrame(index = [second_forecast_date],\n                            data = second_pred)], axis = 0).copy()\n\nmanual_preds.columns = [\"passengers\"]"
-  },
-  {
-    "objectID": "topics/intro/recursive_forecasting.html#performance-evaluation",
-    "href": "topics/intro/recursive_forecasting.html#performance-evaluation",
-    "title": "Forecasting Interval (Multiple Periods Ahead) - Recursive Approach",
-    "section": "Performance Evaluation",
-    "text": "Performance Evaluation\nTo evaluate the model’s performance, we calculate the Root Mean Squared Error (RMSE), a commonly used metric in forecasting. RMSE measures the average magnitude of the prediction errors, with lower values indicating a better fit between the predicted and actual values. By comparing the RMSE for both the training and test sets, we can gauge how well the model performs and whether it generalizes effectively to new data.\n\nfor temp_h in range(forecast_horizon):\n  \n  y_pred_train = Y_train_pred[[f\"pred_{temp_h}\"]]\n\n  y_actual_train = Y_train_pred[f\"h_{temp_h}\"]\n\n  train_rmse = root_mean_squared_error(y_pred_train, y_actual_train)\n  \n  y_pred_test = Y_test_pred[[f\"pred_{temp_h}\"]]\n  \n  y_actual_test = Y_test_pred[f\"h_{temp_h}\"]\n  \n  test_rmse = root_mean_squared_error(y_pred_test, y_actual_test)\n  \n  print(f\"Train RMSE for horizon {temp_h} is {np.round(train_rmse,2)},Test RMSE is {np.round(test_rmse,2)}\")\n\nTrain RMSE for horizon 0 is 22.75,Test RMSE is 49.35\nTrain RMSE for horizon 1 is 35.58,Test RMSE is 80.89\nTrain RMSE for horizon 2 is 42.59,Test RMSE is 98.79\n\n\nIn this tutorial, we successfully implemented a recursive forecasting approach, generating predictions that consider previously predicted values as inputs for future time steps. This method is particularly useful for extending forecasts over multiple periods, as each forecast builds upon the last. The evaluation metrics, especially RMSE, help us assess the model’s accuracy, demonstrating its predictive strength and ability to generalize to new data."
-  },
-  {
-    "objectID": "topics/intro/direct_forecasting.html",
-    "href": "topics/intro/direct_forecasting.html",
-    "title": "Forecasting Interval (Multiple Periods Ahead) - Direct Approach",
-    "section": "",
-    "text": "import numpy as np\nimport pandas as pd\nfrom feature_engine.imputation import DropMissingData\nfrom feature_engine.selection import DropFeatures \nfrom feature_engine.timeseries.forecasting import LagFeatures\nfrom sklearn.linear_model import LinearRegression\nfrom sklearn.multioutput import MultiOutputRegressor\nfrom sklearn.metrics import root_mean_squared_error\nfrom sklearn.pipeline import Pipeline\nimport matplotlib.pyplot as plt\nimport os\nIn this tutorial, we will demonstrate a method for forecasting multiple periods ahead using a pipeline-based approach in Python. Specifically, we will use a direct approach for multi-step forecasting, where each future period within the forecast horizon is predicted independently. The direct approach allows us to generate a forecast for each individual time point in a given interval, which is helpful for applications that need predictions for multiple consecutive periods. For our demonstration, we’ll use a forecast interval of three periods, predicting the next, the following, and the third subsequent time point. This approach involves handling the challenges of preparing lagged data and synchronizing multiple targets across different forecast horizons.\nfile_path = os.path.expanduser(\"~/Documents\") + \"\\\\DS_advanced_website\\\\data\\\\example_air_passengers.csv\"\n\nraw_df = pd.read_csv(file_path,index_col = \"date\")\n\nraw_df.index = pd.to_datetime(raw_df.index)"
-  },
-  {
-    "objectID": "topics/intro/direct_forecasting.html#performance-evaluation",
-    "href": "topics/intro/direct_forecasting.html#performance-evaluation",
-    "title": "Forecasting Interval (Multiple Periods Ahead) - Direct Approach",
-    "section": "Performance evaluation",
-    "text": "Performance evaluation\nTo evaluate the model’s performance, we calculate the Root Mean Squared Error (RMSE), a commonly used metric in forecasting. RMSE measures the average magnitude of the prediction errors, with lower values indicating a better fit between the predicted and actual values. By comparing the RMSE for both the training and test sets, we can gauge how well the model performs and whether it generalizes effectively to new data.\n\nfor temp_h in range(forecast_horizon):\n  \n  y_pred_train = Y_train_pred[[f\"pred_{temp_h}\"]]\n  \n  y_actual_train = Y_train_processed[f\"h_{temp_h}\"]\n  \n  train_rmse = root_mean_squared_error(y_pred_train, y_actual_train)\n  \n  y_pred_test = Y_test_pred[[f\"pred_{temp_h}\"]]\n  \n  y_actual_test = Y_test_processed[f\"h_{temp_h}\"]\n  \n  test_rmse = root_mean_squared_error(y_pred_test, y_actual_test)\n  \n  print(f\"Train RMSE for horizon {temp_h} is {np.round(train_rmse,2)}, Test RMSE is {np.round(test_rmse,2)}\")\n\nTrain RMSE for horizon 0 is 22.73, Test RMSE is 49.69\nTrain RMSE for horizon 1 is 35.5, Test RMSE is 81.48\nTrain RMSE for horizon 2 is 42.48, Test RMSE is 99.33"
-  },
-  {
-    "objectID": "about.html",
-    "href": "about.html",
-    "title": "About",
-    "section": "",
-    "text": "About this site\n\n1 + 1\n\n[1] 2"
-  },
-  {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "",
-    "section": "",
-    "text": "Forecast Demo\n\n\n\n\n \n\nDirect forecast\n\n\n\n\n \n\nRecursive forecast\n\n\n\n\n \n\nTransformations\n\n\n\n\n \n\nTime SeriesDecomposition\n\n\n\n\n \n\nMissing valuesimputation"
-  },
-  {
-    "objectID": "topics/intro/forecaster_demo.html",
-    "href": "topics/intro/forecaster_demo.html",
-    "title": "Forecasting demonstration",
-    "section": "",
-    "text": "import pandas as pd\n\nimport numpy as np\n\nimport matplotlib.pyplot as plt\n\nimport os \n\nfrom feature_engine.timeseries.forecasting import LagFeatures\n\nfrom feature_engine.imputation import DropMissingData\n\nfrom feature_engine.selection import DropFeatures \n\nfrom sklearn.pipeline import Pipeline\n\nfrom sklearn.linear_model import LinearRegression\n\nfrom sklearn.metrics import root_mean_squared_error\nIn this section, we provide a brief demonstration of a forecasting problem using a simple Linear Regression model. The dataset used for this example consists of historical airline passenger numbers. Our goal is to demonstrate the forecasting process, including key steps such as feature engineering, model fitting, and forecast evaluation."
-  },
-  {
-    "objectID": "topics/intro/forecaster_demo.html#data-loading",
-    "href": "topics/intro/forecaster_demo.html#data-loading",
-    "title": "Forecasting demonstration",
-    "section": "Data loading",
-    "text": "Data loading\nThe dataset contains monthly data on the number of airline passengers from January 1949 to December 1960. This time series dataset is commonly used in forecasting examples due to its clear seasonal patterns and upward trend over time. The time index of the data represents the first day of each month, and the target variable is the number of passengers. The following code loads the dataset, ensures the date column is correctly parsed as a datetime object, and sets it as the index of the DataFrame.\n\n\nfile_path = os.path.expanduser(\"~/Documents\") + \"\\\\DS_advanced_website\\\\data\\\\example_air_passengers.csv\"\n\nraw_df = pd.read_csv(file_path,index_col = \"date\")\n\nraw_df.index = pd.to_datetime(raw_df.index)"
-  },
-  {
-    "objectID": "topics/intro/forecaster_demo.html#performance-evaluation",
-    "href": "topics/intro/forecaster_demo.html#performance-evaluation",
-    "title": "Forecasting demonstration",
-    "section": "Performance evaluation",
-    "text": "Performance evaluation\nTo evaluate the model’s performance, we calculate the Root Mean Squared Error (RMSE), a commonly used metric in forecasting. RMSE measures the average magnitude of the prediction errors, with lower values indicating a better fit between the predicted and actual values. By comparing the RMSE for both the training and test sets, we can gauge how well the model performs and whether it generalizes effectively to new data.\n\nprint(f\"Train set RMSE is {np.round(root_mean_squared_error(y_train, y_train_pred),2)}\")\n\nTrain set RMSE is 23.22\n\nprint(f\"Test set RMSE is {np.round(root_mean_squared_error(y_test, y_test_pred),2)}\")\n\nTest set RMSE is 49.64"
-  },
-  {
-    "objectID": "topics/intro/forecaster_demo.html#summary",
-    "href": "topics/intro/forecaster_demo.html#summary",
-    "title": "Forecasting demonstration",
-    "section": "Summary",
-    "text": "Summary\nIn this demonstration, we explored the basic steps of a time series forecasting task using airline passenger data. We processed the data by creating lagged features, trained a simple Linear Regression model, and evaluated the model’s performance using RMSE. This step-by-step approach shows how to handle feature engineering, model training, and performance evaluation in a forecasting scenario, providing a foundation for more advanced time series techniques."
-  },
-  {
     "objectID": "topics/na_imputation/na_imputation.html",
     "href": "topics/na_imputation/na_imputation.html",
     "title": "Missing Data Imputation",
@@ -215,6 +131,132 @@
     "title": "Missing Data Imputation",
     "section": "",
     "text": "STL (Seasonal and Trend decomposition using Loess) is used to separate the seasonal, trend, and residual components of the time series. Linear interpolation is applied first because STL cannot handle missing data directly. After seasonal decomposition, imputation is performed on the deseasonalized series, and the seasonal component is added back to reconstruct the series.\n\n\nstl_inter = STL(raw_df.interpolate(method = \"time\"), seasonal = 31).fit()\n\nseasonal_component = stl_inter.seasonal\n\ndeaseasonlised_df = raw_df[\"sales\"] - seasonal_component\n\ndf_inter = deaseasonlised_df.interpolate(method = \"time\")\n\ndf_final = df_inter + seasonal_component\n\ndf_final = df_final.to_frame().rename(columns = {0:\"sales\"})\n\n\nplt.clf()\n\nax = df_final.plot(linestyle=\"-\", marker=\".\")\n\ndf_final[na_idx].plot(ax=ax, legend=None, marker=\".\", color=\"r\")\n\nplt.show()"
+  },
+  {
+    "objectID": "topics/intro/forecaster_demo.html",
+    "href": "topics/intro/forecaster_demo.html",
+    "title": "Forecasting demonstration",
+    "section": "",
+    "text": "import pandas as pd\n\nimport numpy as np\n\nimport matplotlib.pyplot as plt\n\nimport os \n\nfrom feature_engine.timeseries.forecasting import LagFeatures\n\nfrom feature_engine.imputation import DropMissingData\n\nfrom feature_engine.selection import DropFeatures \n\nfrom sklearn.pipeline import Pipeline\n\nfrom sklearn.linear_model import LinearRegression\n\nfrom sklearn.metrics import root_mean_squared_error\nIn this section, we provide a brief demonstration of a forecasting problem using a simple Linear Regression model. The dataset used for this example consists of historical airline passenger numbers. Our goal is to demonstrate the forecasting process, including key steps such as feature engineering, model fitting, and forecast evaluation."
+  },
+  {
+    "objectID": "topics/intro/forecaster_demo.html#data-loading",
+    "href": "topics/intro/forecaster_demo.html#data-loading",
+    "title": "Forecasting demonstration",
+    "section": "Data loading",
+    "text": "Data loading\nThe dataset contains monthly data on the number of airline passengers from January 1949 to December 1960. This time series dataset is commonly used in forecasting examples due to its clear seasonal patterns and upward trend over time. The time index of the data represents the first day of each month, and the target variable is the number of passengers. The following code loads the dataset, ensures the date column is correctly parsed as a datetime object, and sets it as the index of the DataFrame.\n\n\nfile_path = os.path.expanduser(\"~/Documents\") + \"\\\\DS_advanced_website\\\\data\\\\example_air_passengers.csv\"\n\nraw_df = pd.read_csv(file_path,index_col = \"date\")\n\nraw_df.index = pd.to_datetime(raw_df.index)"
+  },
+  {
+    "objectID": "topics/intro/forecaster_demo.html#performance-evaluation",
+    "href": "topics/intro/forecaster_demo.html#performance-evaluation",
+    "title": "Forecasting demonstration",
+    "section": "Performance evaluation",
+    "text": "Performance evaluation\nTo evaluate the model’s performance, we calculate the Root Mean Squared Error (RMSE), a commonly used metric in forecasting. RMSE measures the average magnitude of the prediction errors, with lower values indicating a better fit between the predicted and actual values. By comparing the RMSE for both the training and test sets, we can gauge how well the model performs and whether it generalizes effectively to new data.\n\nprint(f\"Train set RMSE is {np.round(root_mean_squared_error(y_train, y_train_pred),2)}\")\n\nTrain set RMSE is 23.22\n\nprint(f\"Test set RMSE is {np.round(root_mean_squared_error(y_test, y_test_pred),2)}\")\n\nTest set RMSE is 49.64"
+  },
+  {
+    "objectID": "topics/intro/forecaster_demo.html#summary",
+    "href": "topics/intro/forecaster_demo.html#summary",
+    "title": "Forecasting demonstration",
+    "section": "Summary",
+    "text": "Summary\nIn this demonstration, we explored the basic steps of a time series forecasting task using airline passenger data. We processed the data by creating lagged features, trained a simple Linear Regression model, and evaluated the model’s performance using RMSE. This step-by-step approach shows how to handle feature engineering, model training, and performance evaluation in a forecasting scenario, providing a foundation for more advanced time series techniques."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "",
+    "section": "",
+    "text": "Forecast Demo\n\n\n\n\n \n\nDirect forecast\n\n\n\n\n \n\nRecursive forecast\n\n\n\n\n \n\nTransformations\n\n\n\n\n \n\nTime SeriesDecomposition\n\n\n\n\n \n\nMissing valuesimputation\n\n\n\n\n \n\nOutliers identification"
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this site\n\n1 + 1\n\n[1] 2"
+  },
+  {
+    "objectID": "topics/intro/direct_forecasting.html",
+    "href": "topics/intro/direct_forecasting.html",
+    "title": "Forecasting Interval (Multiple Periods Ahead) - Direct Approach",
+    "section": "",
+    "text": "import numpy as np\nimport pandas as pd\nfrom feature_engine.imputation import DropMissingData\nfrom feature_engine.selection import DropFeatures \nfrom feature_engine.timeseries.forecasting import LagFeatures\nfrom sklearn.linear_model import LinearRegression\nfrom sklearn.multioutput import MultiOutputRegressor\nfrom sklearn.metrics import root_mean_squared_error\nfrom sklearn.pipeline import Pipeline\nimport matplotlib.pyplot as plt\nimport os\nIn this tutorial, we will demonstrate a method for forecasting multiple periods ahead using a pipeline-based approach in Python. Specifically, we will use a direct approach for multi-step forecasting, where each future period within the forecast horizon is predicted independently. The direct approach allows us to generate a forecast for each individual time point in a given interval, which is helpful for applications that need predictions for multiple consecutive periods. For our demonstration, we’ll use a forecast interval of three periods, predicting the next, the following, and the third subsequent time point. This approach involves handling the challenges of preparing lagged data and synchronizing multiple targets across different forecast horizons.\nfile_path = os.path.expanduser(\"~/Documents\") + \"\\\\DS_advanced_website\\\\data\\\\example_air_passengers.csv\"\n\nraw_df = pd.read_csv(file_path,index_col = \"date\")\n\nraw_df.index = pd.to_datetime(raw_df.index)"
+  },
+  {
+    "objectID": "topics/intro/direct_forecasting.html#performance-evaluation",
+    "href": "topics/intro/direct_forecasting.html#performance-evaluation",
+    "title": "Forecasting Interval (Multiple Periods Ahead) - Direct Approach",
+    "section": "Performance evaluation",
+    "text": "Performance evaluation\nTo evaluate the model’s performance, we calculate the Root Mean Squared Error (RMSE), a commonly used metric in forecasting. RMSE measures the average magnitude of the prediction errors, with lower values indicating a better fit between the predicted and actual values. By comparing the RMSE for both the training and test sets, we can gauge how well the model performs and whether it generalizes effectively to new data.\n\nfor temp_h in range(forecast_horizon):\n  \n  y_pred_train = Y_train_pred[[f\"pred_{temp_h}\"]]\n  \n  y_actual_train = Y_train_processed[f\"h_{temp_h}\"]\n  \n  train_rmse = root_mean_squared_error(y_pred_train, y_actual_train)\n  \n  y_pred_test = Y_test_pred[[f\"pred_{temp_h}\"]]\n  \n  y_actual_test = Y_test_processed[f\"h_{temp_h}\"]\n  \n  test_rmse = root_mean_squared_error(y_pred_test, y_actual_test)\n  \n  print(f\"Train RMSE for horizon {temp_h} is {np.round(train_rmse,2)}, Test RMSE is {np.round(test_rmse,2)}\")\n\nTrain RMSE for horizon 0 is 22.73, Test RMSE is 49.69\nTrain RMSE for horizon 1 is 35.5, Test RMSE is 81.48\nTrain RMSE for horizon 2 is 42.48, Test RMSE is 99.33"
+  },
+  {
+    "objectID": "topics/intro/recursive_forecasting.html",
+    "href": "topics/intro/recursive_forecasting.html",
+    "title": "Forecasting Interval (Multiple Periods Ahead) - Recursive Approach",
+    "section": "",
+    "text": "In this tutorial, we demonstrate how to forecast multiple periods (or steps) ahead using a recursive approach, which is commonly applied in time series forecasting. The recursive approach involves using the model’s previous predictions as inputs for generating subsequent predictions. This iterative process is essential for making forecasts that extend over multiple time steps, especially in cases where future values depend on previous predictions. We’ll use this approach to build a forecasting model and evaluate its performance, covering essential preprocessing steps, model fitting, and accuracy measurement.\nimport numpy as np\n\nimport pandas as pd\n\nimport matplotlib.pyplot as plt\n\nimport seaborn as sns\n\nimport os \n\nfrom sklearn.pipeline import Pipeline\n\nfrom sklearn.base import clone\n\nfrom sklearn.linear_model import LinearRegression\n\nfrom feature_engine.timeseries.forecasting import LagFeatures\n\nfrom feature_engine.imputation import DropMissingData\n\nfrom feature_engine.selection import DropFeatures \n\nfrom sklearn.metrics import root_mean_squared_error\nfile_path = os.path.expanduser(\"~/Documents\") + \"\\\\DS_advanced_website\\\\data\\\\example_air_passengers.csv\"\n\nraw_df = pd.read_csv(file_path,index_col = \"date\")\n\nraw_df.index = pd.to_datetime(raw_df.index)"
+  },
+  {
+    "objectID": "topics/intro/recursive_forecasting.html#first-point",
+    "href": "topics/intro/recursive_forecasting.html#first-point",
+    "title": "Forecasting Interval (Multiple Periods Ahead) - Recursive Approach",
+    "section": "First Point",
+    "text": "First Point\nTo forecast the first point in the test set, we’ll use the last known value from the training set. This point will serve as the basis for predicting the next time step, and the prediction for this time step will then be used as an input to forecast subsequent steps.\n\n\nfeature_source_data = train_set.copy()\n\nfirst_forecast_date = train_set.index.max() + pd.DateOffset(months = 1)\n\nfeature_source_data.loc[first_forecast_date] = 0\n\nfeature_vec = feature_engine_pipe.transform(feature_source_data.copy())\n\nfeature_vec = feature_vec.iloc[[len(feature_vec) - 1]].copy()\n\nfirst_pred = lin_reg.predict(feature_vec)\n\nmanual_preds = pd.DataFrame(index = [first_forecast_date],\n                            data = first_pred)"
+  },
+  {
+    "objectID": "topics/intro/recursive_forecasting.html#second-point",
+    "href": "topics/intro/recursive_forecasting.html#second-point",
+    "title": "Forecasting Interval (Multiple Periods Ahead) - Recursive Approach",
+    "section": "Second Point",
+    "text": "Second Point\nFor the second prediction point, we take the forecasted value from the first point and incorporate it as the next input, following the recursive approach.\n\nfeature_source_data.loc[first_forecast_date] = first_pred\n\n&lt;string&gt;:2: FutureWarning: Setting an item of incompatible dtype is deprecated and will raise an error in a future version of pandas. Value '[344.3149789]' has dtype incompatible with int64, please explicitly cast to a compatible dtype first.\n\n\nsecond_forecast_date = first_forecast_date + pd.DateOffset(months = 1)\n\nfeature_source_data.loc[second_forecast_date] = 0\n\nfeature_vec = feature_engine_pipe.transform(feature_source_data.copy())\n\nfeature_vec = feature_vec.iloc[[len(feature_vec) - 1]].copy()\n\nsecond_pred = lin_reg.predict(feature_vec)\n\nmanual_preds = pd.concat([manual_preds,pd.DataFrame(index = [second_forecast_date],\n                            data = second_pred)], axis = 0).copy()\n\nmanual_preds.columns = [\"passengers\"]"
+  },
+  {
+    "objectID": "topics/intro/recursive_forecasting.html#performance-evaluation",
+    "href": "topics/intro/recursive_forecasting.html#performance-evaluation",
+    "title": "Forecasting Interval (Multiple Periods Ahead) - Recursive Approach",
+    "section": "Performance Evaluation",
+    "text": "Performance Evaluation\nTo evaluate the model’s performance, we calculate the Root Mean Squared Error (RMSE), a commonly used metric in forecasting. RMSE measures the average magnitude of the prediction errors, with lower values indicating a better fit between the predicted and actual values. By comparing the RMSE for both the training and test sets, we can gauge how well the model performs and whether it generalizes effectively to new data.\n\nfor temp_h in range(forecast_horizon):\n  \n  y_pred_train = Y_train_pred[[f\"pred_{temp_h}\"]]\n\n  y_actual_train = Y_train_pred[f\"h_{temp_h}\"]\n\n  train_rmse = root_mean_squared_error(y_pred_train, y_actual_train)\n  \n  y_pred_test = Y_test_pred[[f\"pred_{temp_h}\"]]\n  \n  y_actual_test = Y_test_pred[f\"h_{temp_h}\"]\n  \n  test_rmse = root_mean_squared_error(y_pred_test, y_actual_test)\n  \n  print(f\"Train RMSE for horizon {temp_h} is {np.round(train_rmse,2)},Test RMSE is {np.round(test_rmse,2)}\")\n\nTrain RMSE for horizon 0 is 22.75,Test RMSE is 49.35\nTrain RMSE for horizon 1 is 35.58,Test RMSE is 80.89\nTrain RMSE for horizon 2 is 42.59,Test RMSE is 98.79\n\n\nIn this tutorial, we successfully implemented a recursive forecasting approach, generating predictions that consider previously predicted values as inputs for future time steps. This method is particularly useful for extending forecasts over multiple periods, as each forecast builds upon the last. The evaluation metrics, especially RMSE, help us assess the model’s accuracy, demonstrating its predictive strength and ability to generalize to new data."
+  },
+  {
+    "objectID": "topics/outliers/outliers.html",
+    "href": "topics/outliers/outliers.html",
+    "title": "Outliers",
+    "section": "",
+    "text": "Handling missing data and outliers is a critical step in data preprocessing. Missing or anomalous values can distort statistical analysis and predictive modeling, leading to unreliable results. In this tutorial, we focus on identifying and imputing outliers in a time series dataset, which involves deseasonalizing the data, detecting anomalies using statistical methods, and imputing these anomalies with appropriate techniques. This guide demonstrates how to achieve these steps using Python, providing both theoretical explanations and practical code implementation.\n\n\nimport numpy as np\n\nimport pandas as pd\n\nimport matplotlib.pyplot as plt\n\nimport os \n\nfrom statsmodels.tsa.seasonal import STL\n\n\n\nfile_path = os.path.expanduser(\"~/Documents\") + \"\\\\DS_advanced_website\\\\data\\\\example_retail_sales_outliers.csv\"\n\nraw_df = pd.read_csv(file_path,index_col = \"date\")\n\nraw_df.index = pd.to_datetime(raw_df.index)\n\n\nplt.clf()\n\nraw_df[\"sales\"].plot(marker = \".\")\n\nplt.show()"
+  },
+  {
+    "objectID": "topics/outliers/outliers.html#introduction",
+    "href": "topics/outliers/outliers.html#introduction",
+    "title": "Outliers",
+    "section": "",
+    "text": "Handling missing data and outliers is a critical step in data preprocessing. Missing or anomalous values can distort statistical analysis and predictive modeling, leading to unreliable results. In this tutorial, we focus on identifying and imputing outliers in a time series dataset, which involves deseasonalizing the data, detecting anomalies using statistical methods, and imputing these anomalies with appropriate techniques. This guide demonstrates how to achieve these steps using Python, providing both theoretical explanations and practical code implementation.\n\n\nimport numpy as np\n\nimport pandas as pd\n\nimport matplotlib.pyplot as plt\n\nimport os \n\nfrom statsmodels.tsa.seasonal import STL\n\n\n\nfile_path = os.path.expanduser(\"~/Documents\") + \"\\\\DS_advanced_website\\\\data\\\\example_retail_sales_outliers.csv\"\n\nraw_df = pd.read_csv(file_path,index_col = \"date\")\n\nraw_df.index = pd.to_datetime(raw_df.index)\n\n\nplt.clf()\n\nraw_df[\"sales\"].plot(marker = \".\")\n\nplt.show()"
+  },
+  {
+    "objectID": "topics/outliers/outliers.html#deseasonalize-data",
+    "href": "topics/outliers/outliers.html#deseasonalize-data",
+    "title": "Outliers",
+    "section": "Deseasonalize Data",
+    "text": "Deseasonalize Data\nSeasonal patterns in time series data can obscure anomalies. To effectively identify outliers, we first deseasonalize the data. This process involves decomposing the time series into seasonal, trend, and residual components and removing the seasonal component. This ensures that the seasonality does not interfere with our analysis of deviations from expected patterns.\n\n\nstl_decomp = STL(raw_df[\"sales\"], robust = True).fit()\n\nseasonal_component = stl_decomp.seasonal\n\nraw_df[\"sales_deseasonalised\"] = raw_df[\"sales\"] - seasonal_component\n\n\nplt.clf()\n\nraw_df[\"sales_deseasonalised\"].plot(marker = \".\")\n\nplt.title(\"Deseasonlalized data with outliers\")\n\nplt.show()"
+  },
+  {
+    "objectID": "topics/outliers/outliers.html#identify-outliers",
+    "href": "topics/outliers/outliers.html#identify-outliers",
+    "title": "Outliers",
+    "section": "Identify Outliers",
+    "text": "Identify Outliers\nOutlier detection involves identifying data points that deviate significantly from the expected range. Here, the expected value is estimated using rolling statistics, and the margin is defined by the variability around this expectation. Two approaches are used: rolling mean and standard deviation, and rolling median with median absolute deviation (MAD).\n\nRolling Mean and Standard Deviation\nRolling mean and standard deviation provide a straightforward way to calculate the expected value and variability. However, they are sensitive to outliers, as extreme values can skew these measures. To identify outliers, we calculate the rolling mean and standard deviation over a sliding window and define thresholds for outlier detection.\n\n\nraw_df[[\"roll_mean\",\"roll_std\"]] = (\n                \n                raw_df[\"sales_deseasonalised\"]\n                .rolling(window = 13,center = True, min_periods = 1)\n                .agg({\"roll_mean\":\"mean\", \"roll_std\":\"std\"})\n  \n)\n\n\n\nmargin_factor = 3\n\nraw_df[\"upper\"] = raw_df[\"roll_mean\"] + margin_factor * raw_df[\"roll_std\"]\n\nraw_df[\"lower\"] = raw_df[\"roll_mean\"] - margin_factor * raw_df[\"roll_std\"]\n\nraw_df[\"is_outlier\"] = np.abs((raw_df[\"sales_deseasonalised\"] &lt;= raw_df[\"lower\"]) |\n                              (raw_df[\"sales_deseasonalised\"] &gt;= raw_df[\"upper\"]))\n\n\nplt.clf()\n\nax = raw_df[\"sales_deseasonalised\"].plot()\n\nraw_df[\"upper\"].plot(ax = ax, color = \"black\", linestyle = \"dashed\")\n\nraw_df.loc[raw_df[\"is_outlier\"],\"sales_deseasonalised\"].plot(ax = ax,\n                                                             color = \"red\",\n                                                             marker = \"o\",\n                                                             linestyle = \"none\")\n\nplt.show()\n\n\n\n\n\n\n\n\n\n\nRolling Median and Median Absolute Deviation\nMedian and MAD are robust to outliers, making them suitable for datasets with extreme values. The rolling median serves as the expected value, and MAD provides a robust measure of variability. This method ensures that the detection of outliers is not overly influenced by extreme data points.\n\n\ndef mad(x):\n  return np.median(np.abs(x - np.median(x)))\n\nraw_df[[\"roll_median\",\"roll_mad\"]] = (\n                \n                raw_df[\"sales_deseasonalised\"]\n                .rolling(window = 13,center = True, min_periods = 1)\n                .agg({\"roll_median\":\"median\", \"roll_mad\":mad})\n  \n)\n\n\n\nmargin_factor = 3\n\nraw_df[\"upper_2\"] = raw_df[\"roll_median\"] + margin_factor * raw_df[\"roll_mad\"]\n\nraw_df[\"lower_2\"] = raw_df[\"roll_median\"] - margin_factor * raw_df[\"roll_mad\"]\n\nraw_df[\"is_outlier_2\"] = np.abs((raw_df[\"sales_deseasonalised\"] &lt;= raw_df[\"lower_2\"]) |\n                              (raw_df[\"sales_deseasonalised\"] &gt;= raw_df[\"upper_2\"]))\n\n\nplt.clf()\n\nax = raw_df[\"sales_deseasonalised\"].plot()\n\nraw_df[\"upper_2\"].plot(ax = ax, color = \"black\", linestyle = \"dashed\")\n\nraw_df[\"lower_2\"].plot(ax = ax, color = \"black\", linestyle = \"dashed\")\n\nraw_df.loc[raw_df[\"is_outlier_2\"],\"sales_deseasonalised\"].plot(ax = ax,\n                                                             color = \"red\",\n                                                             marker = \"o\",\n                                                             linestyle = \"none\")\n\nplt.show()"
+  },
+  {
+    "objectID": "topics/outliers/outliers.html#impute-outliers",
+    "href": "topics/outliers/outliers.html#impute-outliers",
+    "title": "Outliers",
+    "section": "Impute Outliers",
+    "text": "Impute Outliers\nTo handle outliers, we replace them with imputed values. For demonstration purposes, linear interpolation is used. This technique fills missing or anomalous values by estimating intermediate points using a linear function based on surrounding data.\n\n\nraw_df[\"sales_na\"] = raw_df[\"sales_deseasonalised\"]\n\nraw_df.loc[raw_df[\"is_outlier_2\"],\"sales_na\"] = np.nan\n\nraw_df[\"sales_imputed\"] = raw_df[\"sales_na\"].interpolate(method = \"time\").copy()\n\n\nplt.clf()\n\nax = raw_df[\"sales_imputed\"].plot()\n\nraw_df.loc[raw_df[\"is_outlier_2\"],\"sales_imputed\"].plot(ax = ax,\n                                                      alpha = 0.5,\n                                                      color = \"red\",\n                                                      marker = \"o\",\n                                                      linestyle = \"none\")\n\nplt.title(\"Imputed outliers\")\n\n\nplt.show()"
+  },
+  {
+    "objectID": "topics/outliers/outliers.html#summary",
+    "href": "topics/outliers/outliers.html#summary",
+    "title": "Outliers",
+    "section": "Summary",
+    "text": "Summary\nThis tutorial demonstrated a systematic approach to handling outliers in a time series dataset. Starting with deseasonalizing the data, we explored two methods for outlier detection: rolling mean and standard deviation, and rolling median with MAD. Finally, we showed how to impute outliers using linear interpolation. This workflow ensures a cleaner dataset for further analysis or modeling, enhancing the accuracy and reliability of the results."
   },
   {
     "objectID": "topics/ts_decomposition/lowess_decomp.html",
