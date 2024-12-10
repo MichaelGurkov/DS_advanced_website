@@ -43,11 +43,13 @@ raw_df.index = pd.to_datetime(raw_df.index)
 
 ```
 
+# Generate examples for lag plots
+
+++ explain that we will use the following examples:
+white noise , autoregressive process (AR1), linear trend
 
 
-# AR 1
-
-```{python }
+```{python generate_examples}
 
 num_periods = 1000
 
@@ -79,6 +81,7 @@ del white_noise_series, ar1_series, trend_series
 del t, time_index, ar_coeff, const_term, noise, num_periods
 
 ```
+
 
 
 # Pandas implemenation
@@ -128,7 +131,9 @@ plot_lags_pandas(raw_df.copy(), "Retail sales", nrows = 4, ncols = 3)
 ```
 
 
-# Manual
+# Appendix
+
+## "Manual implementation of lag plots"
 
 ```{python }
 
@@ -179,3 +184,26 @@ plot_lags(ts_df[["trend"]].copy(), "Trend")
 
 
 ```
+
+
+## "Manual implementation of lag features"
+
+
+```{python}
+
+lag_df = raw_df.copy()
+
+for temp_lag in [1,2,12]:
+  lag_df[f"lag_{temp_lag}"] = lag_df["sales"].shift(freq = f"{temp_lag}MS")
+  
+
+```
+
+```{python plot_lags}
+
+plt.clf()
+lag_df.plot(alpha = 0.5)
+plt.show()
+
+```
+
