@@ -1,0 +1,255 @@
+---
+title: "Trend Features"
+---
+
+## Introduction
+
+In this tutorial, we explore how to model time series data using trend features. We will utilize linear regression and extend it with polynomial terms to capture more complex patterns in the data. By incrementally increasing the complexity of the trend terms, we aim to illustrate how these features influence the model's performance on both training and testing sets. Additionally, we will assess the robustness of our models by varying the training period and observing its impact on predictions.
+
+```{r set_up_python, echo=FALSE}
+#|echo: FALSE
+
+if (Sys.getenv("USERPROFILE") == "C:\\Users\\internet"){
+  
+  python_path = paste0("C:\\Users\\internet\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+} else {
+  
+  python_path = paste0("C:\\Users\\Home\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+}
+
+reticulate::use_python(python_path)
+
+```
+
+```{python load_libraries}
+
+import numpy as np
+
+import pandas as pd
+
+import matplotlib.pyplot as plt
+
+import seaborn as sns
+
+import os 
+
+from sklearn.linear_model import LinearRegression
+
+from sklearn.tree import DecisionTreeRegressor
+
+from sklearn.ensemble import HistGradientBoostingRegressor
+
+from sklearn.metrics import root_mean_squared_error
+```
+
+```{python import_data}
+
+file_path = os.path.expanduser("~/Documents") + "\\DS_advanced_website\\data\\example_air_passengers.csv"
+
+raw_df = pd.read_csv(file_path,index_col = "date")
+
+raw_df.index = pd.to_datetime(raw_df.index)
+
+```
+
+## Split Data and Auxiliary Functions
+
+To evaluate the performance of our models, we split the dataset into training and testing subsets based on a specific date. We also define a plotting function to visualize the predictions alongside the true values and compute evaluation metrics such as RMSE (Root Mean Squared Error) for the training and testing sets.
+
+```{python split_train_test_data}
+
+raw_df["trend"] = (raw_df.index - raw_df.index.min()).days.astype(float)
+
+split_date = pd.to_datetime("1960-01-01")
+
+
+X_train = raw_df[["trend"]].loc[raw_df.index <= split_date]
+
+X_test = raw_df[["trend"]].loc[raw_df.index > split_date]
+
+y_train = raw_df["passengers"].loc[raw_df.index <= split_date]
+
+y_test = raw_df["passengers"].loc[raw_df.index > split_date]
+
+```
+
+```{python plot_function}
+
+def plot_pred(df,pred_train, pred_test):
+  
+  plot_df = df.copy()
+  
+  plot_df["pred"] = np.concatenate([pred_train, pred_test])
+  
+  plot_df["type"] = np.concatenate([["train"] * len(pred_train),
+                                    ["test"] * len(pred_test)])
+  
+  rmse_by_group = plot_df.groupby('type').apply(
+    lambda grouped_df: root_mean_squared_error(grouped_df["passengers"],grouped_df["pred"]),
+    include_groups=False)
+    
+  # Add RMSE annotations
+  
+  train_mid_date = plot_df.index[len(pred_train) // 3]
+  
+  test_mid_date = plot_df.index[int(np.ceil(len(pred_train) * 0.7))]
+  
+  plot_df_wide = plot_df.reset_index().copy()
+
+  plot_df_wide = plot_df_wide.melt(id_vars = ["type", "date"],
+                         value_vars = ["passengers","pred"],
+                         var_name = "line_type").copy()
+                         
+  plt.clf()
+                         
+  sns.lineplot(data=plot_df_wide, x="date",
+               y="value", hue="type", style="line_type", legend = False,
+             palette={"train": "blue", "test": "red"})
+               
+  plt.text(train_mid_date, plot_df["passengers"].loc[train_mid_date] * 2,
+  f"RMSE = {rmse_by_group.loc['train']:.2f}",color='blue', fontsize=10)
+  
+  plt.text(test_mid_date, max(plot_df["passengers"]) * 0.95,
+  f"RMSE = {rmse_by_group.loc['test']:.2f}", color='red', fontsize=10)
+
+  plt.show()
+
+```
+
+## Linear Trend
+
+Here, we use time as a single feature to capture the linear trend in the data. Linear regression is a straightforward approach to fit a line that minimizes the error between observed values and predicted values.
+
+```{python lin_reg_pred}
+
+lin_reg = LinearRegression()
+
+lin_reg.fit(X_train, y_train)
+
+y_pred_train_lin_reg = lin_reg.predict(X_train)
+
+y_pred_test_lin_reg = lin_reg.predict(X_test)
+
+```
+
+```{python plot_line_reg}
+
+plot_pred(df = raw_df.copy(), pred_train = y_pred_train_lin_reg,
+          pred_test = y_pred_test_lin_reg)
+
+```
+
+## Nonlinear Trend
+
+### Squared Trend
+
+To capture a potential nonlinear relationship, we introduce a squared trend term. While this enhances the model's ability to fit the training data, extrapolating nonlinear terms can lead to overfitting and unrealistic forecasts, particularly for time periods far outside the training set.
+
+```{python lin_reg_pred_square}
+
+X_train_square = X_train.copy()
+
+X_train_square["trend_sq"] = X_train_square ** 2
+
+X_test_square = X_test.copy()
+
+X_test_square["trend_sq"] = X_test_square ** 2
+
+lin_reg = LinearRegression()
+
+lin_reg.fit(X_train_square, y_train)
+
+y_pred_train_lin_reg_square = lin_reg.predict(X_train_square)
+
+y_pred_test_lin_reg_square = lin_reg.predict(X_test_square)
+
+```
+
+```{python plot_line_reg_square}
+
+plot_pred(df = raw_df.copy(), pred_train = y_pred_train_lin_reg_square,
+          pred_test = y_pred_test_lin_reg_square)
+
+```
+
+### Cubic Trend
+
+Expanding further, we include a cubic trend term. This allows the model to capture even more intricate patterns in the data. However, the risk of overfitting increases as the model complexity grows.
+
+```{python lin_reg_pred_qube}
+
+X_train_qb = X_train_square.copy()
+
+X_train_qb["trend_cube"] = X_train_qb["trend"] ** 3
+
+X_test_qb = X_test_square.copy()
+
+X_test_qb["trend_cube"] = X_test_qb["trend"] ** 3
+
+lin_reg = LinearRegression()
+
+lin_reg.fit(X_train_qb, y_train)
+
+y_pred_train_lin_reg_qb = lin_reg.predict(X_train_qb)
+
+y_pred_test_lin_reg_qb = lin_reg.predict(X_test_qb)
+
+```
+
+```{python plot_line_reg_qube}
+
+plot_pred(df = raw_df.copy(), pred_train = y_pred_train_lin_reg_qb,
+          pred_test = y_pred_test_lin_reg_qb)
+
+```
+
+### Robustness
+
+Shortening the training period demonstrates overfitting to the reduced data and poor generalization to unseen data. 
+
+```{python split_date}
+
+split_date_robust = pd.to_datetime("1955-01-01")
+
+X_train_robust = raw_df[["trend"]].loc[raw_df.index <= split_date_robust]
+
+X_train_robust["trend_square"] = X_train_robust["trend"] ** 2
+
+X_train_robust["trend_qb"] = X_train_robust["trend"] ** 3
+
+X_test_robust = raw_df[["trend"]].loc[raw_df.index > split_date_robust]
+
+X_test_robust["trend_square"] = X_test_robust["trend"] ** 2
+
+X_test_robust["trend_qb"] = X_test_robust["trend"] ** 3
+
+y_train_robust = raw_df["passengers"].loc[raw_df.index <= split_date_robust]
+
+y_test_robust = raw_df["passengers"].loc[raw_df.index > split_date_robust]
+
+```
+
+```{python lin_reg_pred_qube_robust}
+
+lin_reg = LinearRegression()
+
+lin_reg.fit(X_train_robust, y_train_robust)
+
+y_pred_train_lin_reg_qb_robust = lin_reg.predict(X_train_robust)
+
+y_pred_test_lin_reg_qb_robust = lin_reg.predict(X_test_robust)
+
+```
+
+```{python plot_line_reg_qube_robust}
+
+plot_pred(df = raw_df.copy(), pred_train = y_pred_train_lin_reg_qb_robust,
+          pred_test = y_pred_test_lin_reg_qb_robust)
+
+```
+
+## Summary
+
+This tutorial demonstrated how to model trends in time series data using linear and polynomial regression. We highlighted the potential risks of overfitting with increasing model complexity and illustrated how the training period affects model robustness. By carefully balancing model complexity and training data, we can build models that generalize well to unseen data.

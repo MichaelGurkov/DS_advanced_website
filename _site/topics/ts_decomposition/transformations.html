@@ -101,6 +101,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   }
 }</script>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 <link rel="stylesheet" href="../../styles.css">
 </head>
@@ -146,12 +175,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#log-transformation" id="toc-log-transformation" class="nav-link active" data-scroll-target="#log-transformation">Log transformation</a></li>
-  <li><a href="#box-cox-transformation" id="toc-box-cox-transformation" class="nav-link" data-scroll-target="#box-cox-transformation">Box Cox transformation</a>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#log-transformation" id="toc-log-transformation" class="nav-link" data-scroll-target="#log-transformation">Log Transformation</a></li>
+  <li><a href="#box-cox-transformation" id="toc-box-cox-transformation" class="nav-link" data-scroll-target="#box-cox-transformation">Box-Cox Transformation</a>
   <ul class="collapse">
-  <li><a href="#the-guerrero-methond" id="toc-the-guerrero-methond" class="nav-link" data-scroll-target="#the-guerrero-methond">The Guerrero methond</a></li>
+  <li><a href="#the-guerrero-method" id="toc-the-guerrero-method" class="nav-link" data-scroll-target="#the-guerrero-method">The Guerrero Method</a></li>
   </ul></li>
-  <li><a href="#moving-averages" id="toc-moving-averages" class="nav-link" data-scroll-target="#moving-averages">Moving averages</a></li>
+  <li><a href="#moving-averages" id="toc-moving-averages" class="nav-link" data-scroll-target="#moving-averages">Moving Averages</a>
+  <ul class="collapse">
+  <li><a href="#point-moving-average" id="toc-point-moving-average" class="nav-link" data-scroll-target="#point-moving-average">3-Point Moving Average</a></li>
+  <li><a href="#point-moving-average-with-centering" id="toc-point-moving-average-with-centering" class="nav-link" data-scroll-target="#point-moving-average-with-centering">12-Point Moving Average with Centering</a></li>
+  </ul></li>
+  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">Summary</a></li>
   </ul>
 </nav>
     </div>
@@ -180,27 +215,23 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>Data transformation is an essential preprocessing step in data analysis and machine learning, particularly when dealing with time series or data that exhibits non-linear patterns. Transformations, such as log, Box-Cox, and moving averages, are used to adjust data to make it more amenable to analysis by stabilizing variance, enhancing linearity, or smoothing out noise. These adjustments make it easier to uncover trends, detect seasonality, and improve model performance. This tutorial will explore three key transformations—log transformation, Box-Cox transformation (including the Guerrero method), and moving averages—and demonstrate how each can be applied to real-world time series data to improve its suitability for analysis and forecasting.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>file_path <span class="op">=</span> os.path.expanduser(<span class="st">"~/Documents"</span>) <span class="op">+</span> <span class="st">"</span><span class="ch">\\</span><span class="st">DS_advanced_website</span><span class="ch">\\</span><span class="st">data</span><span class="ch">\\</span><span class="st">example_air_passengers.csv"</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>raw_df <span class="op">=</span> pd.read_csv(file_path,index_col <span class="op">=</span> <span class="st">"date"</span>)</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>raw_df.index <span class="op">=</span> pd.to_datetime(raw_df.index)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>raw_df <span class="op">=</span> pd.read_csv(file_path,index_col <span class="op">=</span> <span class="st">"date"</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>raw_df.index <span class="op">=</span> pd.to_datetime(raw_df.index)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"passengers"</span>].plot()</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -209,19 +240,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
+</section>
 <section id="log-transformation" class="level2">
-<h2 class="anchored" data-anchor-id="log-transformation">Log transformation</h2>
-<p>++ explain that sometimes we want to transform a features, for example in order to stabilize the variance</p>
+<h2 class="anchored" data-anchor-id="log-transformation">Log Transformation</h2>
+<p>To make data more suitable for certain analyses, we may need to transform it. One common reason is to stabilize the variance, especially when dealing with data that shows exponential growth or high variability. Log transformation is an effective method for this. By taking the logarithm of each value in the data, we can compress large values and expand smaller ones, resulting in a dataset where variability across different ranges is reduced. This transformation can make trends more visible and prepare the data for further processing or modeling steps.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"passengers_log"</span>] <span class="op">=</span> np.log(raw_df[<span class="st">"passengers"</span>])</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>plt.clf()</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"passengers_log"</span>].plot()</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>plt.clf()</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"passengers_log"</span>].plot()</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -232,35 +260,27 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </section>
 <section id="box-cox-transformation" class="level2">
-<h2 class="anchored" data-anchor-id="box-cox-transformation">Box Cox transformation</h2>
+<h2 class="anchored" data-anchor-id="box-cox-transformation">Box-Cox Transformation</h2>
+<p>The Box-Cox transformation is a versatile method used to stabilize variance across a dataset. Unlike the log transformation, Box-Cox can adapt to various data distributions by tuning the transformation parameter, <span class="math inline">\(\lambda\)</span>. Different values of <span class="math inline">\(\lambda\)</span> change the shape of the transformation, allowing for either compression or expansion of data values in a customized way. By testing various <span class="math inline">\(\lambda\)</span> values, we can achieve the best variance stabilization and approximate a normal distribution, which is helpful for many statistical analyses.</p>
+<p>In this example, we test a series of <span class="math inline">\(\lambda\)</span> values to demonstrate how the shape of the transformed data changes, which can help identify an optimal transformation for stabilizing variance in our dataset.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sktime.transformations.series.boxcox <span class="im">import</span> BoxCoxTransformer</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>lambdas_vec <span class="op">=</span> [<span class="op">-</span><span class="dv">1</span>,<span class="op">-</span><span class="fl">0.5</span>,<span class="dv">0</span>,<span class="fl">0.5</span>,<span class="dv">1</span>,<span class="dv">2</span>]</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>plt.clf()</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>fig,ax <span class="op">=</span> plt.subplots(ncols <span class="op">=</span> <span class="dv">2</span>, nrows <span class="op">=</span> <span class="dv">3</span>,figsize<span class="op">=</span>[<span class="dv">25</span>, <span class="dv">15</span>], sharex <span class="op">=</span> <span class="va">True</span>)</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> ax.flatten()</span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ix, temp_lambda <span class="kw">in</span> <span class="bu">enumerate</span>(lambdas_vec):</span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  <span class="bu">print</span>(temp_lambda)</span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  bc_trans <span class="op">=</span> BoxCoxTransformer(lambda_fixed <span class="op">=</span> temp_lambda)</span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  raw_df[<span class="st">"temp_box_cox"</span>] <span class="op">=</span> bc_trans.fit_transform(raw_df[<span class="st">"passengers"</span>])</span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  raw_df.plot(y <span class="op">=</span> <span class="st">"temp_box_cox"</span>,ax  <span class="op">=</span> ax[ix], label <span class="op">=</span> <span class="ss">f"lambda = </span><span class="sc">{</span>temp_lambda<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>  ax[ix].legend()</span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>  ax[ix].set_xlabel(<span class="st">""</span>)</span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>plt.clf()</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(ncols<span class="op">=</span><span class="dv">2</span>, nrows<span class="op">=</span><span class="dv">3</span>, figsize<span class="op">=</span>[<span class="dv">25</span>, <span class="dv">15</span>], sharex<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> ax.flatten()</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ix, temp_lambda <span class="kw">in</span> <span class="bu">enumerate</span>(lambdas_vec):</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(temp_lambda)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    bc_trans <span class="op">=</span> BoxCoxTransformer(lambda_fixed<span class="op">=</span>temp_lambda)</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    raw_df[<span class="st">"temp_box_cox"</span>] <span class="op">=</span> bc_trans.fit_transform(raw_df[<span class="st">"passengers"</span>])</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    raw_df.plot(y<span class="op">=</span><span class="st">"temp_box_cox"</span>, ax<span class="op">=</span>ax[ix], label<span class="op">=</span><span class="ss">f"lambda = </span><span class="sc">{</span>temp_lambda<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    ax[ix].legend(fontsize<span class="op">=</span><span class="dv">20</span>)</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    ax[ix].set_xlabel(<span class="st">""</span>)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -276,23 +296,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<section id="the-guerrero-methond" class="level3">
-<h3 class="anchored" data-anchor-id="the-guerrero-methond">The Guerrero methond</h3>
-<p>++ explain briefly the Guerrero method. Emphasize that it’s advantage is the explicit focus on stabilization of variance.</p>
+<section id="the-guerrero-method" class="level3">
+<h3 class="anchored" data-anchor-id="the-guerrero-method">The Guerrero Method</h3>
+<p>The Guerrero method for the Box-Cox transformation offers a targeted approach to variance stabilization by automatically selecting an optimal () based on the data’s seasonal patterns. This method evaluates the seasonal periodicity and adjusts () to achieve minimal variance over time. The advantage of using Guerrero’s method is that it provides a systematic way to stabilize variance in seasonal data without manually testing multiple () values. This automatic tuning is particularly useful when working with time series data with complex seasonal patterns.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sktime.transformations.series.boxcox <span class="im">import</span> BoxCoxTransformer</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>bc_guerrero <span class="op">=</span> BoxCoxTransformer(method <span class="op">=</span> <span class="st">"guerrero"</span>, sp <span class="op">=</span> <span class="dv">12</span>)</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"passengers_bc_guerrero"</span>] <span class="op">=</span> bc_guerrero.fit_transform(raw_df[<span class="st">"passengers"</span>])</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>plt.clf()</span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"passengers_bc_guerrero"</span>].plot()</span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>bc_guerrero <span class="op">=</span> BoxCoxTransformer(method<span class="op">=</span><span class="st">"guerrero"</span>, sp<span class="op">=</span><span class="dv">12</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"passengers_bc_guerrero"</span>] <span class="op">=</span> bc_guerrero.fit_transform(raw_df[<span class="st">"passengers"</span>])</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>plt.clf()</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>raw_df[<span class="st">"passengers_bc_guerrero"</span>].plot()</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -304,32 +320,29 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 </section>
 <section id="moving-averages" class="level2">
-<h2 class="anchored" data-anchor-id="moving-averages">Moving averages</h2>
-<p>++ explain the odd moving average window is symmetric (there are equal amount of point on each side of the center). The even size moving average does not have a natural center but we can change the weights to achieve a symmetric window. The weights will not be the same, on the edges the weights will be smaller. Actually in order to make an even size window symmetric we need to apply additional moving average of window 2 so the edge’s weights will be half the other (inside) weights.</p>
+<h2 class="anchored" data-anchor-id="moving-averages">Moving Averages</h2>
+<p>Moving averages are a common technique for smoothing time series data, allowing for a clearer view of the underlying trend by reducing noise. With an odd-sized window, the moving average is symmetric, meaning it has an equal number of data points on either side of the center, which simplifies calculation and interpretation.</p>
+<p>When using an even-sized window, achieving symmetry is more challenging because there isn’t a natural center point. To create a balanced, symmetric effect, we can adjust the weights, assigning smaller weights to the edges while retaining higher weights for the central values. Another approach to achieve symmetry with an even window is to apply a secondary moving average of window size 2. This additional step smooths the edge values, effectively balancing the window weights.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>ma_file_path <span class="op">=</span> os.path.expanduser(<span class="st">"~/Documents"</span>) <span class="op">+</span> <span class="st">"</span><span class="ch">\\</span><span class="st">DS_advanced_website</span><span class="ch">\\</span><span class="st">data</span><span class="ch">\\</span><span class="st">example_retail_sales.csv"</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>ma_raw_df <span class="op">=</span> pd.read_csv(ma_file_path,index_col <span class="op">=</span> <span class="st">"date"</span>)</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>ma_raw_df.index <span class="op">=</span> pd.to_datetime(ma_raw_df.index)</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="kw">del</span> ma_file_path</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>ma_raw_df <span class="op">=</span> pd.read_csv(ma_file_path, index_col<span class="op">=</span><span class="st">"date"</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>ma_raw_df.index <span class="op">=</span> pd.to_datetime(ma_raw_df.index)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="kw">del</span> ma_file_path</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+<section id="point-moving-average" class="level3">
+<h3 class="anchored" data-anchor-id="point-moving-average">3-Point Moving Average</h3>
+<p>Here, we apply a 3-point moving average, which is symmetric by nature. This approach smooths out the data while retaining the central tendency, making it easier to observe general trends without the distraction of short-term fluctuations.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>ma_df <span class="op">=</span> ma_raw_df.copy()</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>ma_df[<span class="st">"ma_3"</span>] <span class="op">=</span> ma_df[<span class="st">"sales"</span>].rolling(window <span class="op">=</span> <span class="dv">3</span>, center <span class="op">=</span> <span class="va">True</span>).mean()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>ma_df[<span class="st">"ma_3"</span>] <span class="op">=</span> ma_df[<span class="st">"sales"</span>].rolling(window<span class="op">=</span><span class="dv">3</span>, center<span class="op">=</span><span class="va">True</span>).mean()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>plt.clf()</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>ma_df[<span class="st">"ma_3"</span>].plot(color <span class="op">=</span> <span class="st">"steelblue"</span>)</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>ma_df[<span class="st">"sales"</span>].plot(color <span class="op">=</span> <span class="st">"grey"</span>, alpha <span class="op">=</span> <span class="fl">0.7</span>)</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>ma_df[<span class="st">"ma_3"</span>].plot(color<span class="op">=</span><span class="st">"steelblue"</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>ma_df[<span class="st">"sales"</span>].plot(color<span class="op">=</span><span class="st">"grey"</span>, alpha<span class="op">=</span><span class="fl">0.7</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -338,24 +351,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
+</section>
+<section id="point-moving-average-with-centering" class="level3">
+<h3 class="anchored" data-anchor-id="point-moving-average-with-centering">12-Point Moving Average with Centering</h3>
+<p>To create a symmetric 12-point moving average, we apply an additional 2-point moving average to our initial 12-point average. This second step reduces the impact of edge weights, creating a balanced smoothing effect. After this adjustment, we shift the result by half the window size to ensure alignment with the original data, resulting in a centered moving average.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>even_window_size <span class="op">=</span> <span class="dv">12</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>ma_df[<span class="st">"ma_2_12"</span>] <span class="op">=</span> ma_df[<span class="st">"sales"</span>].rolling(window <span class="op">=</span> even_window_size).mean()</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>ma_df[<span class="st">"ma_2_12"</span>] <span class="op">=</span> ma_df[<span class="st">"ma_2_12"</span>].rolling(window <span class="op">=</span> <span class="dv">2</span>, center <span class="op">=</span> <span class="va">True</span>).mean()</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>ma_df[<span class="st">"ma_2_12"</span>] <span class="op">=</span> ma_df[<span class="st">"ma_2_12"</span>].shift(<span class="op">-</span> even_window_size <span class="op">//</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>ma_df[<span class="st">"ma_2_12"</span>] <span class="op">=</span> ma_df[<span class="st">"sales"</span>].rolling(window<span class="op">=</span>even_window_size).mean()</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>ma_df[<span class="st">"ma_2_12"</span>] <span class="op">=</span> ma_df[<span class="st">"ma_2_12"</span>].rolling(window<span class="op">=</span><span class="dv">2</span>, center<span class="op">=</span><span class="va">True</span>).mean()</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>ma_df[<span class="st">"ma_2_12"</span>] <span class="op">=</span> ma_df[<span class="st">"ma_2_12"</span>].shift(<span class="op">-</span>even_window_size <span class="op">//</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>plt.clf()</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>ma_df[<span class="st">"ma_2_12"</span>].plot(color <span class="op">=</span> <span class="st">"steelblue"</span>)</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>ma_df[<span class="st">"sales"</span>].plot(color <span class="op">=</span> <span class="st">"grey"</span>, alpha <span class="op">=</span> <span class="fl">0.7</span>)</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>ma_df[<span class="st">"ma_2_12"</span>].plot(color<span class="op">=</span><span class="st">"steelblue"</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>ma_df[<span class="st">"sales"</span>].plot(color<span class="op">=</span><span class="st">"grey"</span>, alpha<span class="op">=</span><span class="fl">0.7</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -364,21 +375,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<blockquote class="blockquote">
-<blockquote class="blockquote">
-<blockquote class="blockquote">
-<blockquote class="blockquote">
-<blockquote class="blockquote">
-<blockquote class="blockquote">
-<blockquote class="blockquote">
-<p>e7329f12e3f9c1d7266bdc4614b17630418a7520</p>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
+</section>
+</section>
+<section id="summary" class="level2">
+<h2 class="anchored" data-anchor-id="summary">Summary</h2>
+<p>This tutorial has demonstrated the use of log transformations, Box-Cox transformations, and moving averages to prepare time series data for analysis. Each transformation serves a specific purpose: log transformations reduce skewness and stabilize variance, Box-Cox transformations provide flexibility through parameter tuning, and moving averages smooth data for trend analysis. By understanding and applying these techniques, we can better handle data variability, enhance interpretability, and ultimately improve forecasting accuracy. The choice of transformation should align with the data characteristics and analytical goals, making transformations a valuable tool in the data scientist’s arsenal for managing diverse time series data.</p>
 
 
 </section>

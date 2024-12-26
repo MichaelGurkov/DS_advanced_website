@@ -146,9 +146,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#ar-1" id="toc-ar-1" class="nav-link active" data-scroll-target="#ar-1">AR 1</a></li>
+  <li><a href="#generate-examples-for-lag-plots" id="toc-generate-examples-for-lag-plots" class="nav-link active" data-scroll-target="#generate-examples-for-lag-plots">Generate examples for lag plots</a></li>
   <li><a href="#pandas-implemenation" id="toc-pandas-implemenation" class="nav-link" data-scroll-target="#pandas-implemenation">Pandas implemenation</a></li>
-  <li><a href="#manual" id="toc-manual" class="nav-link" data-scroll-target="#manual">Manual</a></li>
+  <li><a href="#appendix" id="toc-appendix" class="nav-link" data-scroll-target="#appendix">Appendix</a>
+  <ul class="collapse">
+  <li><a href="#manual-implementation-of-lag-plots" id="toc-manual-implementation-of-lag-plots" class="nav-link" data-scroll-target="#manual-implementation-of-lag-plots">“Manual implementation of lag plots”</a></li>
+  <li><a href="#manual-implementation-of-lag-features" id="toc-manual-implementation-of-lag-features" class="nav-link" data-scroll-target="#manual-implementation-of-lag-features">“Manual implementation of lag features”</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -192,8 +196,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>raw_df.index <span class="op">=</span> pd.to_datetime(raw_df.index)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<section id="ar-1" class="level1">
-<h1>AR 1</h1>
+<section id="generate-examples-for-lag-plots" class="level1">
+<h1>Generate examples for lag plots</h1>
+<p>++ explain that we will use the following examples: white noise , autoregressive process (AR1), linear trend</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>num_periods <span class="op">=</span> <span class="dv">1000</span></span>
@@ -280,8 +285,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </section>
-<section id="manual" class="level1">
-<h1>Manual</h1>
+<section id="appendix" class="level1">
+<h1>Appendix</h1>
+<section id="manual-implementation-of-lag-plots" class="level2">
+<h2 class="anchored" data-anchor-id="manual-implementation-of-lag-plots">“Manual implementation of lag plots”</h2>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -359,8 +366,39 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
+</section>
+<section id="manual-implementation-of-lag-features" class="level2">
+<h2 class="anchored" data-anchor-id="manual-implementation-of-lag-features">“Manual implementation of lag features”</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>lag_df <span class="op">=</span> raw_df.copy()</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> temp_lag <span class="kw">in</span> [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">12</span>]:</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  lag_df[<span class="ss">f"lag_</span><span class="sc">{</span>temp_lag<span class="sc">}</span><span class="ss">"</span>] <span class="op">=</span> lag_df[<span class="st">"sales"</span>].shift(freq <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>temp_lag<span class="sc">}</span><span class="ss">MS"</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>plt.clf()</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>lag_df.plot(alpha <span class="op">=</span> <span class="fl">0.5</span>)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="lag_plots_files/figure-html/plot_lags-19.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="lag_plots_files/figure-html/plot_lags-20.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

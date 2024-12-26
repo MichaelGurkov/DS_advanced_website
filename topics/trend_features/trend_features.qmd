@@ -19,7 +19,7 @@ reticulate::use_python(python_path)
 
 ```
 
-```{python}
+```{python load_libraries}
 
 import numpy as np
 
@@ -55,11 +55,9 @@ raw_df.index = pd.to_datetime(raw_df.index)
 
 ```{python split_train_test_data}
 
-
 raw_df["trend"] = (raw_df.index - raw_df.index.min()).days.astype(float)
 
 split_date = pd.to_datetime("1960-01-01")
-
 
 
 X_train = raw_df[["trend"]].loc[raw_df.index <= split_date]
@@ -74,7 +72,7 @@ y_test = raw_df["passengers"].loc[raw_df.index > split_date]
 ```
 
 
-```{python plot__function}
+```{python plot_function}
 
 def plot_pred(df,pred_train, pred_test):
   
@@ -85,18 +83,35 @@ def plot_pred(df,pred_train, pred_test):
   plot_df["type"] = np.concatenate([["train"] * len(pred_train),
                                     ["test"] * len(pred_test)])
   
-  plot_df = plot_df.reset_index().copy()
-                                    
-  plot_df = plot_df.melt(id_vars = ["type", "date"],
+  rmse_by_group = plot_df.groupby('type').apply(
+    lambda grouped_df: root_mean_squared_error(grouped_df["passengers"],grouped_df["pred"]),
+    include_groups=False)
+    
+  # Add RMSE annotations
+  
+  train_mid_date = plot_df.index[len(pred_train) // 3]
+  
+  test_mid_date = plot_df.index[int(np.ceil(len(pred_train) * 0.7))]
+  
+  plot_df_wide = plot_df.reset_index().copy()
+
+  plot_df_wide = plot_df_wide.melt(id_vars = ["type", "date"],
                          value_vars = ["passengers","pred"],
                          var_name = "line_type").copy()
                          
   plt.clf()
                          
-  sns.lineplot(data=plot_df, x="date",
-               y="value", hue="type", style="line_type", legend = False)
+  sns.lineplot(data=plot_df_wide, x="date",
+               y="value", hue="type", style="line_type", legend = False,
+             palette={"train": "blue", "test": "red"})
+               
+  plt.text(train_mid_date, plot_df["passengers"].loc[train_mid_date] * 2,
+  f"RMSE = {rmse_by_group.loc['train']:.2f}",color='blue', fontsize=10)
   
-  
+  plt.text(test_mid_date, max(plot_df["passengers"]) * 0.95,
+  f"RMSE = {rmse_by_group.loc['test']:.2f}", color='red', fontsize=10)
+
+ 
 
   plt.show()
 
@@ -104,13 +119,12 @@ def plot_pred(df,pred_train, pred_test):
 ```
 
 
+# Linear trend
 
+++ explain the we will introduce a linear trend (by using time feature) and then
+we'll see how different models (linear regression and tree based models such as decision tree and gradient boosting) work with this feature. It turns out that tree based model have difficulties with handling trends (and linear trends in particular) 
 
-
-
-## Linear trend
-
-### Linear model
+## Linear model
 
 ```{python lin_reg_pred}
 
@@ -133,7 +147,9 @@ plot_pred(df = raw_df.copy(), pred_train = y_pred_train_lin_reg,
 
 ```
 
-### Tree model
+## Tree model
+
+++ explain that tree based models are giving one prediction in the final leave and that results in missing the trend and not being able to extrapolate the linear trend (based on time feature)
 
 ```{python tree_model}
 
@@ -158,7 +174,9 @@ plot_pred(df = raw_df.copy(), pred_train = y_pred_train_tree,
 ```
 
 
-### Gradient boosting 
+## Gradient boosting
+
+++ explain that the gradient boosting is a more flexible model than decision tree but it still fails to deal with linear trend because the nature of the problem (tree based models giving one prediction in the final leave) is the same
 
 ```{python gb_model}
 
@@ -183,7 +201,7 @@ plot_pred(df = raw_df.copy(), pred_train = y_pred_train_gb,
 
 
 
-### Rolling forecast
+## Rolling forecast
 
 ```{python}
 
@@ -194,6 +212,11 @@ forecast_df = pd.DataFrame(index = pd.date_range(start = forecast_start,
                                                  freq = "MS"))
 
 ```
+
+
+
+
+# Change points
 
 
 ## Nonlinear trend
